@@ -86,6 +86,8 @@ function downloadCsv() {
     'status',
     'registration_date',
     'experience_type',
+    'account_type',
+    'reactivation_status',
     'pre_event_edits_90d',
     'edits_30d',
     'edits_90d',
@@ -133,6 +135,45 @@ function downloadCsv() {
   document.body.removeChild(link)
 
   URL.revokeObjectURL(url)
+}
+
+function formatAccountType(user) {
+  if (user.status === 'user_not_found') {
+    return 'User not found'
+  }
+
+  if (user.status === 'bot_excluded') {
+    return 'Bot excluded'
+  }
+
+  const labels = {
+    newbie: 'New account',
+    existing_user: 'Existing account',
+    unknown: 'Unknown account age',
+    reactivated_editor: 'Existing account'
+  }
+
+  return labels[user.experience_type] || user.experience_type || ''
+}
+
+function formatRetentionCategory(value) {
+  const labels = {
+    not_retained: 'Not retained',
+    one_time_returner: 'One-time returner',
+    active_retained_user: 'Active retained user',
+    sustained_retained_user: 'Sustained retained user',
+    very_active_retained_user: 'Very active retained user'
+  }
+
+  return labels[value] || value || ''
+}
+
+function formatWindowValue(value) {
+  if (value === null || value === undefined) {
+    return '—'
+  }
+
+  return value
 }
 </script>
 
@@ -188,8 +229,18 @@ function downloadCsv() {
         </div>
 
         <div class="summary-card">
+          <span>Duplicates removed</span>
+          <strong>{{ result.summary.duplicate_or_removed_usernames }}</strong>
+        </div>
+
+        <div class="summary-card">
           <span>Valid users</span>
           <strong>{{ result.summary.valid_users }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Invalid users</span>
+          <strong>{{ result.summary.invalid_users }}</strong>
         </div>
 
         <div class="summary-card">
@@ -199,12 +250,7 @@ function downloadCsv() {
 
         <div class="summary-card">
           <span>Existing accounts</span>
-          <strong>{{ result.summary.existing_users }}</strong>
-        </div>
-
-        <div class="summary-card">
-          <span>Reactivated existing users</span>
-          <strong>{{ result.summary.reactivated_editors }}</strong>
+          <strong>{{ result.summary.existing_users + result.summary.unknown_experience }}</strong>
         </div>
 
         <div class="summary-card">
@@ -238,37 +284,33 @@ function downloadCsv() {
           <thead>
             <tr>
               <th>Username</th>
-              <th>Status</th>
-              <th>User type</th>
+              <th>Account type</th>
               <th>Pre-event edits</th>
               <th>30d</th>
               <th>90d</th>
               <th>180d</th>
               <th>360d</th>
-              <th>Total edits</th>
               <th>Active months</th>
               <th>First post-activity edit</th>
               <th>Last post-activity edit</th>
-              <th>Category</th>
+              <th>Retention category</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-for="user in result.users" :key="user.username">
-              <td>{{ user.username }}</td>
-              <td>{{ user.status }}</td>
-              <td>{{ user.experience_type }}</td>
-              <td>{{ user.pre_event_edits_90d }}</td>
-              <td>{{ user.edits_30d }}</td>
-              <td>{{ user.edits_90d }}</td>
-              <td>{{ user.edits_180d }}</td>
-              <td>{{ user.edits_360d }}</td>
-              <td>{{ user.total_edits }}</td>
-              <td>{{ user.active_months }}</td>
-              <td>{{ user.first_post_activity_edit }}</td>
-              <td>{{ user.last_post_activity_edit }}</td>
-              <td>{{ user.retention_category }}</td>
-            </tr>
+            <td>{{ user.username }}</td>
+            <td>{{ formatAccountType(user) }}</td>
+            <td>{{ user.pre_event_edits_90d }}</td>
+            <td>{{ formatWindowValue(user.edits_30d) }}</td>
+            <td>{{ formatWindowValue(user.edits_90d) }}</td>
+            <td>{{ formatWindowValue(user.edits_180d) }}</td>
+            <td>{{ formatWindowValue(user.edits_360d) }}</td>
+            <td>{{ user.active_months }}</td>
+            <td>{{ user.first_post_activity_edit }}</td>
+            <td>{{ user.last_post_activity_edit }}</td>
+            <td>{{ formatRetentionCategory(user.retention_category) }}</td>
+          </tr>
           </tbody>
         </table>
       </div>

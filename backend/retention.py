@@ -112,9 +112,21 @@ def calculate_retention_metrics(
 ) -> dict:
     """
     Calculate cumulative retention metrics from post-event contributions.
+
+    A retention window is only available if enough time has passed since
+    the reference date. For example, 180-day retention should not be shown
+    as final if the reference date was only 90 days ago.
     """
 
     reference_dt = reference_date_to_datetime(reference_date)
+
+    # "Today" in UTC, at midnight.
+    today_dt = datetime.now(timezone.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
 
     contribution_datetimes = []
 
@@ -131,6 +143,14 @@ def calculate_retention_metrics(
 
     for window in retention_windows:
         window_end = reference_dt + timedelta(days=window)
+        window_is_available = window_end <= today_dt
+
+        metrics[f"available_{window}d"] = window_is_available
+
+        if not window_is_available:
+            metrics[f"edits_{window}d"] = None
+            metrics[f"retained_{window}d"] = None
+            continue
 
         count = sum(
             1
@@ -256,6 +276,7 @@ def analyze_manual_placeholder(request) -> dict:
     """
 
     cleaned_usernames = normalize_usernames(request.usernames)
+    duplicate_or_removed_usernames = len(request.usernames) - len(cleaned_usernames)
 
     user_metadata = get_user_metadata_batch(
         usernames=cleaned_usernames,
@@ -296,17 +317,22 @@ def analyze_manual_placeholder(request) -> dict:
             status = "user_not_found"
             experience_type = None
             pre_event_edits = None
+            reactivation_status = None
             invalid_users += 1
 
             retention_metrics = {
+                "available_30d": False,
+                "available_90d": False,
+                "available_180d": False,
+                "available_360d": False,
                 "edits_30d": None,
                 "edits_90d": None,
                 "edits_180d": None,
                 "edits_360d": None,
-                "retained_30d": False,
-                "retained_90d": False,
-                "retained_180d": False,
-                "retained_360d": False,
+                "retained_30d": None,
+                "retained_90d": None,
+                "retained_180d": None,
+                "retained_360d": None,
                 "total_edits": None,
                 "active_months": None,
                 "first_post_activity_edit": None,
@@ -319,17 +345,22 @@ def analyze_manual_placeholder(request) -> dict:
             status = "bot_excluded"
             experience_type = None
             pre_event_edits = None
+            reactivation_status = None
             bot_users += 1
 
             retention_metrics = {
+                "available_30d": False,
+                "available_90d": False,
+                "available_180d": False,
+                "available_360d": False,
                 "edits_30d": None,
                 "edits_90d": None,
                 "edits_180d": None,
                 "edits_360d": None,
-                "retained_30d": False,
-                "retained_90d": False,
-                "retained_180d": False,
-                "retained_360d": False,
+                "retained_30d": None,
+                "retained_90d": None,
+                "retained_180d": None,
+                "retained_360d": None,
                 "total_edits": None,
                 "active_months": None,
                 "first_post_activity_edit": None,
@@ -340,6 +371,7 @@ def analyze_manual_placeholder(request) -> dict:
 
         else:
             status = "ok"
+            reactivation_status = None
 
             experience_type = classify_experience_type(
                 registration_date=metadata["registration_date"],
@@ -363,6 +395,8 @@ def analyze_manual_placeholder(request) -> dict:
 
             pre_event_edits = None
 
+            reactivation_status = None
+
             if experience_type == "existing_user":
                 existing_users += 1
 
@@ -374,8 +408,10 @@ def analyze_manual_placeholder(request) -> dict:
                 )
 
                 if pre_event_edits == 0 and retention_metrics["total_edits"] > 0:
-                    experience_type = "reactivated_editor"
+                    reactivation_status = "reactivated"
                     reactivated_editors += 1
+                else:
+                    reactivation_status = "not_reactivated"
 
             elif experience_type == "newbie":
                 newbies += 1
@@ -408,7 +444,13 @@ def analyze_manual_placeholder(request) -> dict:
             "status": status,
             "registration_date": metadata["registration_date"],
             "experience_type": experience_type,
+            "account_type": experience_type,
+            "reactivation_status": reactivation_status,
             "pre_event_edits_90d": pre_event_edits,
+            "available_30d": retention_metrics["available_30d"],
+            "available_90d": retention_metrics["available_90d"],
+            "available_180d": retention_metrics["available_180d"],
+            "available_360d": retention_metrics["available_360d"],
             "edits_30d": retention_metrics["edits_30d"],
             "edits_90d": retention_metrics["edits_90d"],
             "edits_180d": retention_metrics["edits_180d"],
@@ -437,6 +479,7 @@ def analyze_manual_placeholder(request) -> dict:
         "summary": {
             "total_users_submitted": len(request.usernames),
             "cleaned_users": len(cleaned_usernames),
+            "duplicate_or_removed_usernames": duplicate_or_removed_usernames,
             "valid_users": valid_users,
             "invalid_users": invalid_users,
             "bot_users": bot_users,
