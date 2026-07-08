@@ -5,6 +5,10 @@ import axios from 'axios'
 const usernamesText = ref('')
 const wiki = ref('eswiki')
 const referenceDate = ref('')
+const newbieThresholdDays = ref(60)
+const reactivationThresholdDays = ref(90)
+const activeEditThreshold = ref(5)
+const veryActiveEditThreshold = ref(20)
 const loading = ref(false)
 const error = ref('')
 const result = ref(null)
@@ -43,10 +47,10 @@ async function runAnalysis() {
       wiki: wiki.value.trim(),
       reference_date: referenceDate.value,
       retention_windows: [30, 90, 180, 360],
-      newbie_threshold_days: 60,
-      reactivation_threshold_days: 90,
-      active_edit_threshold: 5,
-      very_active_edit_threshold: 20
+      newbie_threshold_days: Number(newbieThresholdDays.value),
+      reactivation_threshold_days: Number(reactivationThresholdDays.value),
+      active_edit_threshold: Number(activeEditThreshold.value),
+      very_active_edit_threshold: Number(veryActiveEditThreshold.value)
     })
 
     result.value = response.data
@@ -81,28 +85,29 @@ function downloadCsv() {
     return
   }
 
-  const columns = [
-    'username',
-    'status',
-    'registration_date',
-    'experience_type',
-    'account_type',
-    'reactivation_status',
-    'pre_event_edits_90d',
-    'edits_30d',
-    'edits_90d',
-    'edits_180d',
-    'edits_360d',
-    'retained_30d',
-    'retained_90d',
-    'retained_180d',
-    'retained_360d',
-    'total_edits',
-    'active_months',
-    'first_post_activity_edit',
-    'last_post_activity_edit',
-    'retention_category'
-  ]
+const columns = [
+  'username',
+  'status',
+  'registration_date',
+  'experience_type',
+  'pre_event_edits_90d',
+  'available_30d',
+  'edits_30d',
+  'retained_30d',
+  'available_90d',
+  'edits_90d',
+  'retained_90d',
+  'available_180d',
+  'edits_180d',
+  'retained_180d',
+  'available_360d',
+  'edits_360d',
+  'retained_360d',
+  'active_months',
+  'first_post_activity_edit',
+  'last_post_activity_edit',
+  'retention_category'
+]
 
   const header = columns.join(',')
 
@@ -150,6 +155,7 @@ function formatAccountType(user) {
     newbie: 'New account',
     existing_user: 'Existing account',
     unknown: 'Unknown account age',
+    created_after_reference_date: 'Created after reference date',
     reactivated_editor: 'Existing account'
   }
 
@@ -174,6 +180,14 @@ function formatWindowValue(value) {
   }
 
   return value
+}
+
+function formatRetentionPercentage(retentionSummary) {
+  if (!retentionSummary || retentionSummary.percentage === null || retentionSummary.percentage === undefined) {
+    return '—'
+  }
+
+  return `${retentionSummary.percentage}%`
 }
 </script>
 
@@ -211,6 +225,60 @@ function formatWindowValue(value) {
           <input v-model="referenceDate" type="date" />
         </label>
       </div>
+
+      <details class="advanced-settings">
+        <summary>Advanced settings</summary>
+
+        <div class="grid settings-grid">
+          <label>
+            New account threshold, in days
+            <input
+              v-model="newbieThresholdDays"
+              type="number"
+              min="0"
+            />
+            <small>
+              Users registered within this many days before the reference date are counted as new accounts.
+            </small>
+          </label>
+
+          <label>
+            Pre-event activity window, in days
+            <input
+              v-model="reactivationThresholdDays"
+              type="number"
+              min="0"
+            />
+            <small>
+              Used for the pre-event edits column. Default: 90 days before the reference date.
+            </small>
+          </label>
+
+          <label>
+            Active retained threshold, edits
+            <input
+              v-model="activeEditThreshold"
+              type="number"
+              min="1"
+            />
+            <small>
+              Minimum post-activity edits needed to count as active retained.
+            </small>
+          </label>
+
+          <label>
+            Very active threshold, edits
+            <input
+              v-model="veryActiveEditThreshold"
+              type="number"
+              min="1"
+            />
+            <small>
+              Minimum post-activity edits needed to count as very active retained.
+            </small>
+          </label>
+        </div>
+      </details>
 
       <button @click="runAnalysis" :disabled="loading">
         {{ loading ? 'Running analysis...' : 'Run analysis' }}
@@ -255,17 +323,22 @@ function formatWindowValue(value) {
 
         <div class="summary-card">
           <span>30-day retention</span>
-          <strong>{{ result.summary.retained_30d.percentage }}%</strong>
+          <strong>{{ formatRetentionPercentage(result.summary.retained_30d) }}</strong>
         </div>
 
         <div class="summary-card">
           <span>90-day retention</span>
-          <strong>{{ result.summary.retained_90d.percentage }}%</strong>
+          <strong>{{ formatRetentionPercentage(result.summary.retained_90d) }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>180-day retention</span>
+          <strong>{{ formatRetentionPercentage(result.summary.retained_180d) }}</strong>
         </div>
 
         <div class="summary-card">
           <span>360-day retention</span>
-          <strong>{{ result.summary.retained_360d.percentage }}%</strong>
+          <strong>{{ formatRetentionPercentage(result.summary.retained_360d) }}</strong>
         </div>
       </div>
     </section>
@@ -462,6 +535,32 @@ button:disabled {
 
 .summary-card strong {
   font-size: 1.8rem;
+}
+
+.advanced-settings {
+  margin: 8px 0 20px;
+  border: 1px solid #2a3441;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #0f141a;
+}
+
+.advanced-settings summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #f5f7fa;
+}
+
+.settings-grid {
+  margin-top: 18px;
+}
+
+small {
+  display: block;
+  margin-top: 6px;
+  color: #9ca3af;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .table-wrapper {

@@ -99,6 +99,11 @@ def classify_experience_type(
 
     days_between = (reference_dt - registration_dt).days
 
+    days_between = (reference_dt - registration_dt).days
+
+    if days_between < 0:
+        return "created_after_reference_date"
+
     if 0 <= days_between <= newbie_threshold_days:
         return "newbie"
 
@@ -224,6 +229,41 @@ def calculate_percentage(count: int, total: int) -> float:
         return 0
 
     return round((count / total) * 100, 1)
+
+def build_retention_summary(window: int, retained_counts: dict, valid_users: int, reference_date) -> dict:
+    """
+    Build summary data for a retention window.
+
+    If the window is not available yet, return null values so the frontend
+    does not show misleading 0% retention.
+    """
+
+    reference_dt = reference_date_to_datetime(reference_date)
+
+    today_dt = datetime.now(timezone.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    window_end = reference_dt + timedelta(days=window)
+    window_is_available = window_end <= today_dt
+
+    if not window_is_available:
+        return {
+            "available": False,
+            "count": None,
+            "percentage": None
+        }
+
+    count = retained_counts.get(window, 0)
+
+    return {
+        "available": True,
+        "count": count,
+        "percentage": calculate_percentage(count, valid_users)
+    }
 
 
 def count_pre_event_edits(
@@ -487,22 +527,30 @@ def analyze_manual_placeholder(request) -> dict:
             "existing_users": existing_users,
             "reactivated_editors": reactivated_editors,
             "unknown_experience": unknown_experience,
-            "retained_30d": {
-                "count": retained_counts.get(30, 0),
-                "percentage": calculate_percentage(retained_counts.get(30, 0), valid_users)
-            },
-            "retained_90d": {
-                "count": retained_counts.get(90, 0),
-                "percentage": calculate_percentage(retained_counts.get(90, 0), valid_users)
-            },
-            "retained_180d": {
-                "count": retained_counts.get(180, 0),
-                "percentage": calculate_percentage(retained_counts.get(180, 0), valid_users)
-            },
-            "retained_360d": {
-                "count": retained_counts.get(360, 0),
-                "percentage": calculate_percentage(retained_counts.get(360, 0), valid_users)
-            },
+            "retained_30d": build_retention_summary(
+                window=30,
+                retained_counts=retained_counts,
+                valid_users=valid_users,
+                reference_date=request.reference_date
+            ),
+            "retained_90d": build_retention_summary(
+                window=90,
+                retained_counts=retained_counts,
+                valid_users=valid_users,
+                reference_date=request.reference_date
+            ),
+            "retained_180d": build_retention_summary(
+                window=180,
+                retained_counts=retained_counts,
+                valid_users=valid_users,
+                reference_date=request.reference_date
+            ),
+            "retained_360d": build_retention_summary(
+                window=360,
+                retained_counts=retained_counts,
+                valid_users=valid_users,
+                reference_date=request.reference_date
+            ),
             "active_retained_users": active_retained_users,
             "sustained_retained_users": sustained_retained_users,
             "very_active_retained_users": very_active_retained_users
