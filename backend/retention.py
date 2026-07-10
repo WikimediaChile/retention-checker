@@ -486,7 +486,7 @@ def analyze_manual_placeholder(request) -> dict:
             "experience_type": experience_type,
             "account_type": experience_type,
             "reactivation_status": reactivation_status,
-            "pre_event_edits_90d": pre_event_edits,
+            "pre_event_edits_reactivation_window": pre_event_edits,
             "available_30d": retention_metrics["available_30d"],
             "available_90d": retention_metrics["available_90d"],
             "available_180d": retention_metrics["available_180d"],

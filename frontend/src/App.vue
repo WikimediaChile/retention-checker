@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
+const activeTab = ref('analyze')
 const usernamesText = ref('')
 const wiki = ref('eswiki')
 const referenceDate = ref('')
@@ -90,7 +91,7 @@ const columns = [
   'status',
   'registration_date',
   'experience_type',
-  'pre_event_edits_90d',
+  'pre_event_edits_reactivation_window',
   'available_30d',
   'edits_30d',
   'retained_30d',
@@ -202,6 +203,26 @@ function formatRetentionPercentage(retentionSummary) {
       </p>
     </section>
 
+    <nav class="tabs" aria-label="Retention Checker sections">
+      <button
+        class="tab-button"
+        :class="{ active: activeTab === 'analyze' }"
+        @click="activeTab = 'analyze'"
+      >
+        Analyze
+      </button>
+
+      <button
+        class="tab-button"
+        :class="{ active: activeTab === 'about' }"
+        @click="activeTab = 'about'"
+      >
+        About
+      </button>
+    </nav>
+
+    <div v-if="activeTab === 'analyze'">
+    
     <section class="card">
       <h2>Manual analysis</h2>
 
@@ -285,6 +306,135 @@ function formatRetentionPercentage(retentionSummary) {
       </button>
 
       <p v-if="error" class="error">{{ error }}</p>
+    </section>
+    </div>
+
+    <section v-if="activeTab === 'about'" class="card about-card">
+      <h2>About Retention Checker</h2>
+
+      <p>
+        Retention Checker helps Wikimedia organizers analyze whether participants
+        continued editing after an activity, such as a workshop, campaign,
+        edit-a-thon, course, or training.
+      </p>
+
+      <h3>What does the reference date mean?</h3>
+      <p>
+        The reference date is the date from which post-activity editing is measured.
+        In most cases, this should be the end date of the activity.
+      </p>
+
+      <h3>What edits are counted?</h3>
+      <p>
+        For this version, the tool counts only visible edits in the main namespace
+        of the selected wiki. On Wikipedia, this means article edits. On Wikidata,
+        this means item edits. On Commons, this means file-page edits.
+      </p>
+
+      <h3>How do retention windows work?</h3>
+      <p>
+        Retention windows are cumulative. For example, 90-day retention counts edits
+        made from the reference date through 90 days after that date.
+      </p>
+
+      <p>
+        If not enough time has passed for a window, the tool shows <strong>"—"</strong>
+        instead of zero. This means the window is not available yet, not that the user
+        had no edits.
+      </p>
+
+      <h3>What are pre-event edits?</h3>
+      <p>
+        Pre-event edits are main-namespace edits made before the reference date,
+        within the selected pre-event activity window. The default window is 90 days.
+        This helps identify whether an existing account was recently active before
+        the activity.
+      </p>
+
+      <h3>Account types</h3>
+      <table class="about-table">
+        <thead>
+          <tr>
+            <th>Account type</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>New account</td>
+            <td>The account was created within the selected new-account threshold before the reference date.</td>
+          </tr>
+          <tr>
+            <td>Existing account</td>
+            <td>The account was created before the new-account threshold.</td>
+          </tr>
+          <tr>
+            <td>Unknown account age</td>
+            <td>The account is valid, but the registration date is unavailable from the API. This can happen with older accounts.</td>
+          </tr>
+          <tr>
+            <td>Created after reference date</td>
+            <td>The account was created after the selected reference date.</td>
+          </tr>
+          <tr>
+            <td>User not found</td>
+            <td>The username could not be found on the selected wiki.</td>
+          </tr>
+          <tr>
+            <td>Bot excluded</td>
+            <td>The account appears to be a bot and is excluded from valid user counts.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Retention categories</h3>
+      <table class="about-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Not retained</td>
+            <td>
+              The user made 0 main-namespace edits after the reference date in the available analysis window.
+            </td>
+          </tr>
+          <tr>
+            <td>One-time returner</td>
+            <td>
+              The user made at least 1 main-namespace edit after the reference date, but fewer than the active retained threshold, and edited in only one month.
+            </td>
+          </tr>
+          <tr>
+            <td>Active retained user</td>
+            <td>
+              The user reached the selected active retained threshold. By default, this means 5 or more main-namespace edits after the reference date.
+            </td>
+          </tr>
+          <tr>
+            <td>Sustained retained user</td>
+            <td>
+              The user edited in at least 2 different months after the reference date, even if they did not reach the very active threshold.
+            </td>
+          </tr>
+          <tr>
+            <td>Very active retained user</td>
+            <td>
+              The user reached the selected very active threshold, or met both active and sustained conditions. By default, this means either 20 or more edits, or 5 or more edits across at least 2 months.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>What does this tool not prove?</h3>
+      <p>
+        Retention Checker shows post-activity editing behavior. It does not prove
+        that an activity caused a user to continue editing. The results should be
+        interpreted as evidence of continued activity after participation.
+      </p>
     </section>
 
     <section v-if="result" class="card">
@@ -374,7 +524,7 @@ function formatRetentionPercentage(retentionSummary) {
             <tr v-for="user in result.users" :key="user.username">
             <td>{{ user.username }}</td>
             <td>{{ formatAccountType(user) }}</td>
-            <td>{{ user.pre_event_edits_90d }}</td>
+            <td>{{ user.pre_event_edits_reactivation_window }}</td>
             <td>{{ formatWindowValue(user.edits_30d) }}</td>
             <td>{{ formatWindowValue(user.edits_90d) }}</td>
             <td>{{ formatWindowValue(user.edits_180d) }}</td>
@@ -439,11 +589,13 @@ h2 {
 }
 
 .card {
+  width: 100%;
   background: #171d24;
   border: 1px solid #2a3441;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
+  overflow: hidden;
 }
 
 label {
@@ -564,6 +716,7 @@ small {
 }
 
 .table-wrapper {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -583,6 +736,61 @@ td {
 
 th {
   color: #cbd5e1;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tab-button {
+  background: #0f141a;
+  color: #cbd5e1;
+  border: 1px solid #2a3441;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+.tab-button.active {
+  background: #6d8cff;
+  color: white;
+  border-color: #6d8cff;
+}
+
+.about-card {
+  max-width: 900px;
+}
+
+.about-card p {
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.about-card h3 {
+  margin-top: 28px;
+  margin-bottom: 8px;
+}
+
+.about-table {
+  margin-top: 12px;
+}
+
+.about-table td:first-child {
+  font-weight: 700;
+  color: #f5f7fa;
+}
+
+.about-table th,
+.about-table td {
+  white-space: normal;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.about-table td:first-child {
+  min-width: 180px;
 }
 
 @media (max-width: 800px) {
