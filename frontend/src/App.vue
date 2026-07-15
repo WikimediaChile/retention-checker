@@ -1,6 +1,22 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import axios from 'axios'
+
+import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip
+)
 
 const activeTab = ref('analyze')
 const usernamesText = ref('')
@@ -190,6 +206,93 @@ function formatRetentionPercentage(retentionSummary) {
 
   return `${retentionSummary.percentage}%`
 }
+
+const retentionChartData = computed(() => {
+  if (!result.value) {
+    return {
+      labels: [],
+      datasets: []
+    }
+  }
+
+  const retentionChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      callbacks: {
+        label(context) {
+          return `${context.parsed.y}%`
+        }
+      }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      max: 100,
+      ticks: {
+        color: '#cbd5e1',
+        callback(value) {
+          return `${value}%`
+        }
+      },
+      grid: {
+        color: '#2a3441'
+      }
+    },
+    x: {
+      ticks: {
+        color: '#cbd5e1'
+      },
+      grid: {
+        display: false
+      }
+    }
+  }
+}
+  const windows = [
+    {
+      label: '30 days',
+      summary: result.value.summary.retained_30d
+    },
+    {
+      label: '90 days',
+      summary: result.value.summary.retained_90d
+    },
+    {
+      label: '180 days',
+      summary: result.value.summary.retained_180d
+    },
+    {
+      label: '360 days',
+      summary: result.value.summary.retained_360d
+    }
+  ]
+
+  const availableWindows = windows.filter(
+    (window) => window.summary?.available
+  )
+
+  return {
+    labels: availableWindows.map((window) => window.label),
+    datasets: [
+      {
+        label: 'Retention percentage',
+        data: availableWindows.map(
+          (window) => window.summary.percentage
+        ),
+        backgroundColor: '#6d8cff',
+        borderColor: '#91a6ff',
+        borderWidth: 1,
+        borderRadius: 6
+      }
+    ]
+  }
+})
 </script>
 
 <template>
@@ -493,6 +596,30 @@ function formatRetentionPercentage(retentionSummary) {
       </div>
     </section>
 
+    <section v-if="result" class="card">
+      <h2>Retention by window</h2>
+
+      <p class="chart-description">
+        Percentage of valid users who made at least one main-namespace edit
+        within each available cumulative retention window.
+      </p>
+
+      <div
+        v-if="retentionChartData.labels.length > 0"
+        class="chart-container"
+      >
+        <Bar
+          :data="retentionChartData"
+          :options="retentionChartOptions"
+          aria-label="Retention percentage by available time window"
+        />
+      </div>
+
+      <p v-else class="empty-chart-message">
+        No retention windows are available yet.
+      </p>
+    </section>
+
       <section v-if="result" class="card">
         <div class="section-header">
           <h2>User results</h2>
@@ -791,6 +918,23 @@ th {
 
 .about-table td:first-child {
   min-width: 180px;
+}
+
+.chart-description {
+  margin-top: -4px;
+  margin-bottom: 24px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 340px;
+}
+
+.empty-chart-message {
+  color: #9ca3af;
 }
 
 @media (max-width: 800px) {
