@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "Retention Checker",
+    "eyebrow": "Wikimedia post-activity analysis",
+    "description": "Analyze whether participants continued editing after an activity. This first version supports manual username entry for one wiki."
+  },
+  "tabs": {
+    "ariaLabel": "Retention Checker sections",
+    "analyze": "Analyze",
+    "about": "About"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "spanish": "Español"
+  },
+  "analysis": {
+    "title": "Manual analysis",
+    "usernamesLabel": "Usernames",
+    "usernamesPlaceholder": "One username per line",
+    "wikiLabel": "Wiki",
+    "wikiPlaceholder": "eswiki",
+    "referenceDateLabel": "Reference date",
+    "advancedSettings": "Advanced settings",
+    "newbieThresholdLabel": "New account threshold, in days",
+    "newbieThresholdHelp": "Users registered within this many days before the reference date are counted as new accounts.",
+    "preEventWindowLabel": "Pre-event activity window, in days",
+    "preEventWindowHelp": "Used for the pre-event edits column. Default: 90 days before the reference date.",
+    "activeThresholdLabel": "Active retained threshold, edits",
+    "activeThresholdHelp": "Minimum post-activity edits needed to count as active retained.",
+    "veryActiveThresholdLabel": "Very active threshold, edits",
+    "veryActiveThresholdHelp": "Minimum post-activity edits needed to count as very active retained.",
+    "run": "Run analysis",
+    "running": "Running analysis..."
+  },
+  "errors": {
+    "usernamesRequired": "Please enter at least one username.",
+    "wikiRequired": "Please enter a wiki, for example eswiki.",
+    "referenceDateRequired": "Please choose a reference date.",
+    "analysisFailed": "Something went wrong while running the analysis. Check that the backend is running."
+  },
+  "summary": {
+  "title": "Summary",
+  "totalSubmitted": "Total submitted",
+  "duplicatesRemoved": "Duplicates removed",
+  "validUsers": "Valid users",
+  "invalidUsers": "Invalid users",
+  "newAccounts": "New accounts",
+  "existingOrUnknownAccounts": "Existing or unknown-age accounts",
+  "retention30": "30-day retention",
+  "retention90": "90-day retention",
+  "retention180": "180-day retention",
+  "retention360": "360-day retention"
+},
+"chart": {
+  "title": "Retention by window",
+  "description": "Percentage of valid users who made at least one main-namespace edit within each available cumulative retention window.",
+  "empty": "No retention windows are available yet.",
+  "ariaLabel": "Retention percentage by available time window",
+  "datasetLabel": "Retention percentage",
+  "windowDays": "{days} days"
+},
+"results": {
+  "title": "User results",
+  "downloadCsv": "Download CSV",
+  "columns": {
+    "username": "Username",
+    "accountType": "Account type",
+    "preEventEdits": "Pre-event edits",
+    "day30": "30d",
+    "day90": "90d",
+    "day180": "180d",
+    "day360": "360d",
+    "activeMonths": "Active months",
+    "firstPostActivityEdit": "First post-activity edit",
+    "lastPostActivityEdit": "Last post-activity edit",
+    "retentionCategory": "Retention category"
+  }
+},
+"accountTypes": {
+  "userNotFound": "User not found",
+  "botExcluded": "Bot excluded",
+  "newbie": "New account",
+  "existingUser": "Existing account",
+  "unknown": "Unknown account age",
+  "createdAfterReferenceDate": "Created after reference date"
+},
+"retentionCategories": {
+  "notRetained": "Not retained",
+  "oneTimeReturner": "One-time returner",
+  "activeRetainedUser": "Active retained user",
+  "sustainedRetainedUser": "Sustained retained user",
+  "veryActiveRetainedUser": "Very active retained user"
+},
+"about": {
+  "title": "About Retention Checker",
+  "intro": "Retention Checker helps Wikimedia organizers analyze whether participants continued editing after an activity, such as a workshop, campaign, edit-a-thon, course, or training.",
+
+  "validUsersTitle": "Which accounts are included?",
+  "validUsersDescription": "Duplicate usernames are removed before analysis. Usernames that are not found and accounts identified as bots are shown in the results, but they are excluded from the valid-user total and retention percentages.",
+
+  "referenceDateTitle": "What does the reference date mean?",
+  "referenceDateDescription": "The reference date is the point from which post-activity editing is measured. In most cases, this should be the end date of the activity.",
+
+  "countedEditsTitle": "What edits are counted?",
+  "countedEditsDescription": "For this version, the tool counts only visible edits in namespace 0 of the selected wiki. On Wikipedia, this means article edits. On Wikidata, this means item edits. On Wikimedia Commons, file pages use a different namespace, so file-page edits are not currently counted.",
+
+  "retentionWindowsTitle": "How do retention windows work?",
+  "retentionWindowsDescription": "Retention windows are cumulative. For example, 90-day retention counts edits made from the reference date through 90 days after that date, including activity already counted in the 30-day window.",
+  "unavailableWindowsDescription": "If not enough time has passed for a window, the tool shows — instead of zero. — means that the window is not available yet. Zero means that the window is available and no edits were found.",
+
+  "preEventEditsTitle": "What are pre-event edits?",
+  "preEventEditsDescription": "Pre-event edits are namespace-0 edits made before the reference date. With the current settings, the tool checks the {days} days before the reference date. This does not change the retention windows; it only provides context about the account's recent activity.",
+
+  "accountTypesTitle": "Account types",
+  "table": {
+    "accountType": "Account type",
+    "category": "Category",
+    "meaning": "Meaning"
+  },
+  "accountTypeDescriptions": {
+    "newbie": "The account was created between 0 and {days} days before the reference date.",
+    "existingUser": "The account was created more than {days} days before the reference date.",
+    "unknown": "The account is valid, but its registration date is unavailable from the API. This can happen with older accounts.",
+    "createdAfterReferenceDate": "The account was created after the selected reference date, so it did not yet exist at the time represented by that date.",
+    "userNotFound": "The username could not be found on the selected wiki.",
+    "botExcluded": "The account was identified as a bot and is excluded from valid-user totals and retention percentages."
+  },
+  "retentionCategoriesTitle": "Retention categories",
+  "retentionCategoryDescriptions": {
+    "notRetained": "The account made 0 namespace-0 edits after the reference date in the period currently analyzed.",
+    "oneTimeReturner": "The account made at least 1 but fewer than {activeThreshold} post-activity edits, with activity in only one calendar month.",
+    "activeRetainedUser": "The account made at least {activeThreshold} but fewer than {veryActiveThreshold} post-activity edits, with activity in only one calendar month.",
+    "sustainedRetainedUser": "The account edited in at least 2 different calendar months, but made fewer than {activeThreshold} post-activity edits in total.",
+    "veryActiveRetainedUser": "The account either made at least {veryActiveThreshold} post-activity edits, or made at least {activeThreshold} edits across 2 or more different calendar months."
+  },
+
+  "limitationsTitle": "What does this tool not prove?",
+  "limitationsDescription": "Retention Checker shows editing behavior after an activity. It does not prove that the activity caused a participant to continue editing. The results should be interpreted as evidence of continued activity after participation, not as proof of causation."
+},
+"analysisModes": {
+  "ariaLabel": "Analysis source",
+  "manual": "Manual list",
+  "dashboard": "Programs & Events Dashboard"
+},
+"dashboard": {
+  "title": "Dashboard analysis",
+  "courseLabel": "Course URL or slug",
+  "coursePlaceholder": "https://outreachdashboard.wmflabs.org/courses/Organization/Course_Name",
+  "courseHelp": "Paste a complete Programs & Events Dashboard course URL or a course slug such as Organization/Course_Name.",
+  "detectedSlug": "Detected course: {slug}",
+  "invalidInput": "Enter a Dashboard course URL or a course slug containing the organization and course name.",
+  "loadCourse": "Load course",
+  "loadingCourse": "Loading course...",
+  "loadFailed": "The course information could not be loaded.",
+  "previewTitle": "Course preview",
+  "courseTitle": "Course",
+  "organization": "Organization",
+  "participants": "Participants",
+  "staff": "Staff or instructors",
+  "roleConflicts": "Role conflicts",
+  "wikiLabel": "Wiki for retention analysis",
+  "referenceDateLabel": "Reference date",
+  "roleConflictHelp": "Accounts with both participant and staff roles are excluded from the default participant list.",
+  "openCourse": "Open course in Dashboard"
+}
+
+} 

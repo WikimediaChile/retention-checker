@@ -1,0 +1,171 @@
+{
+  "app": {
+    "name": "Retention Checker",
+    "eyebrow": "Análisis de actividad posterior en Wikimedia",
+    "description": "Analiza si las personas participantes continuaron editando después de una actividad. Esta primera versión permite ingresar manualmente nombres de usuario para una wiki."
+  },
+  "tabs": {
+    "ariaLabel": "Secciones de Retention Checker",
+    "analyze": "Analizar",
+    "about": "Acerca de"
+  },
+  "language": {
+    "label": "Idioma",
+    "english": "English",
+    "spanish": "Español"
+  },
+  "analysis": {
+    "title": "Análisis manual",
+    "usernamesLabel": "Nombres de usuario",
+    "usernamesPlaceholder": "Un nombre de usuario por línea",
+    "wikiLabel": "Wiki",
+    "wikiPlaceholder": "eswiki",
+    "referenceDateLabel": "Fecha de referencia",
+    "advancedSettings": "Configuración avanzada",
+    "newbieThresholdLabel": "Umbral de cuenta nueva, en días",
+    "newbieThresholdHelp": "Las cuentas registradas dentro de esta cantidad de días antes de la fecha de referencia se cuentan como cuentas nuevas.",
+    "preEventWindowLabel": "Ventana de actividad previa, en días",
+    "preEventWindowHelp": "Se utiliza para la columna de ediciones previas. Valor predeterminado: 90 días antes de la fecha de referencia.",
+    "activeThresholdLabel": "Umbral de retención activa, en ediciones",
+    "activeThresholdHelp": "Cantidad mínima de ediciones posteriores a la actividad para considerar una cuenta como retenida activa.",
+    "veryActiveThresholdLabel": "Umbral de actividad muy alta, en ediciones",
+    "veryActiveThresholdHelp": "Cantidad mínima de ediciones posteriores a la actividad para considerar una cuenta como retenida muy activa.",
+    "run": "Ejecutar análisis",
+    "running": "Ejecutando análisis..."
+  },
+  "errors": {
+    "usernamesRequired": "Ingresa al menos un nombre de usuario.",
+    "wikiRequired": "Ingresa una wiki, por ejemplo eswiki.",
+    "referenceDateRequired": "Selecciona una fecha de referencia.",
+    "analysisFailed": "Se produjo un error al ejecutar el análisis. Comprueba que el backend esté funcionando."
+  },
+  "summary": {
+  "title": "Resumen",
+  "totalSubmitted": "Total ingresado",
+  "duplicatesRemoved": "Duplicados eliminados",
+  "validUsers": "Cuentas válidas",
+  "invalidUsers": "Cuentas no válidas",
+  "newAccounts": "Cuentas nuevas",
+  "existingOrUnknownAccounts": "Cuentas existentes o con antigüedad desconocida",
+  "retention30": "Retención a 30 días",
+  "retention90": "Retención a 90 días",
+  "retention180": "Retención a 180 días",
+  "retention360": "Retención a 360 días"
+},
+"chart": {
+  "title": "Retención por ventana",
+  "description": "Porcentaje de cuentas válidas que realizaron al menos una edición en el espacio de nombres principal dentro de cada ventana acumulativa de retención disponible.",
+  "empty": "Todavía no hay ventanas de retención disponibles.",
+  "ariaLabel": "Porcentaje de retención por ventana de tiempo disponible",
+  "datasetLabel": "Porcentaje de retención",
+  "windowDays": "{days} días"
+},
+"results": {
+  "title": "Resultados por cuenta",
+  "downloadCsv": "Descargar CSV",
+  "columns": {
+    "username": "Nombre de usuario",
+    "accountType": "Tipo de cuenta",
+    "preEventEdits": "Ediciones previas",
+    "day30": "30 d",
+    "day90": "90 d",
+    "day180": "180 d",
+    "day360": "360 d",
+    "activeMonths": "Meses activos",
+    "firstPostActivityEdit": "Primera edición posterior a la actividad",
+    "lastPostActivityEdit": "Última edición posterior a la actividad",
+    "retentionCategory": "Categoría de retención"
+  }
+},
+"accountTypes": {
+  "userNotFound": "Cuenta no encontrada",
+  "botExcluded": "Bot excluido",
+  "newbie": "Cuenta nueva",
+  "existingUser": "Cuenta existente",
+  "unknown": "Antigüedad de la cuenta desconocida",
+  "createdAfterReferenceDate": "Creada después de la fecha de referencia"
+},
+"retentionCategories": {
+  "notRetained": "No retenida",
+  "oneTimeReturner": "Retorno puntual",
+  "activeRetainedUser": "Cuenta retenida activa",
+  "sustainedRetainedUser": "Cuenta retenida sostenida",
+  "veryActiveRetainedUser": "Cuenta retenida muy activa"
+},
+
+"about": {
+  "title": "Acerca de Retention Checker",
+  "intro": "Retention Checker ayuda a quienes organizan actividades Wikimedia a analizar si las personas participantes continuaron editando después de una actividad, como un taller, una campaña, una editatón, un curso o una capacitación.",
+
+  "validUsersTitle": "¿Qué cuentas se incluyen?",
+  "validUsersDescription": "Los nombres de usuario duplicados se eliminan antes del análisis. Los nombres de usuario que no se encuentran y las cuentas identificadas como bots aparecen en los resultados, pero se excluyen del total de cuentas válidas y de los porcentajes de retención.",
+
+  "referenceDateTitle": "¿Qué significa la fecha de referencia?",
+  "referenceDateDescription": "La fecha de referencia es el punto desde el cual se mide la actividad de edición posterior. En la mayoría de los casos, debería corresponder a la fecha de término de la actividad.",
+
+  "countedEditsTitle": "¿Qué ediciones se cuentan?",
+  "countedEditsDescription": "En esta versión, la herramienta solo cuenta ediciones visibles en el espacio de nombres 0 de la wiki seleccionada. En Wikipedia, esto corresponde a ediciones de artículos. En Wikidata, corresponde a ediciones de elementos. En Wikimedia Commons, las páginas de archivo utilizan otro espacio de nombres, por lo que actualmente no se cuentan las ediciones de páginas de archivo.",
+
+  "retentionWindowsTitle": "¿Cómo funcionan las ventanas de retención?",
+  "retentionWindowsDescription": "Las ventanas de retención son acumulativas. Por ejemplo, la retención a 90 días cuenta las ediciones realizadas desde la fecha de referencia hasta 90 días después, incluida la actividad que ya fue contabilizada en la ventana de 30 días.",
+  "unavailableWindowsDescription": "Si todavía no ha pasado suficiente tiempo para una ventana, la herramienta muestra — en lugar de cero. — significa que la ventana aún no está disponible. Cero significa que la ventana ya está disponible y no se encontraron ediciones.",
+
+  "preEventEditsTitle": "¿Qué son las ediciones previas?",
+  "preEventEditsDescription": "Las ediciones previas son ediciones en el espacio de nombres 0 realizadas antes de la fecha de referencia. Con la configuración actual, la herramienta revisa los {days} días anteriores a la fecha de referencia. Esto no modifica las ventanas de retención; solo entrega contexto sobre la actividad reciente de la cuenta.",
+
+  "accountTypesTitle": "Tipos de cuenta",
+  "table": {
+    "accountType": "Tipo de cuenta",
+    "category": "Categoría",
+    "meaning": "Significado"
+  },
+
+  "accountTypeDescriptions": {
+    "newbie": "La cuenta fue creada entre 0 y {days} días antes de la fecha de referencia.",
+    "existingUser": "La cuenta fue creada más de {days} días antes de la fecha de referencia.",
+    "unknown": "La cuenta es válida, pero su fecha de registro no está disponible mediante la API. Esto puede ocurrir con cuentas antiguas.",
+    "createdAfterReferenceDate": "La cuenta fue creada después de la fecha de referencia seleccionada, por lo que todavía no existía en el momento representado por esa fecha.",
+    "userNotFound": "El nombre de usuario no se pudo encontrar en la wiki seleccionada.",
+    "botExcluded": "La cuenta fue identificada como bot y se excluye del total de cuentas válidas y de los porcentajes de retención."
+  },
+
+  "retentionCategoriesTitle": "Categorías de retención",
+  "retentionCategoryDescriptions": {
+    "notRetained": "La cuenta realizó 0 ediciones en el espacio de nombres 0 después de la fecha de referencia durante el periodo analizado.",
+    "oneTimeReturner": "La cuenta realizó al menos 1 pero menos de {activeThreshold} ediciones posteriores a la actividad, con actividad en un solo mes calendario.",
+    "activeRetainedUser": "La cuenta realizó al menos {activeThreshold} pero menos de {veryActiveThreshold} ediciones posteriores a la actividad, con actividad en un solo mes calendario.",
+    "sustainedRetainedUser": "La cuenta editó en al menos 2 meses calendario distintos, pero realizó menos de {activeThreshold} ediciones posteriores a la actividad en total.",
+    "veryActiveRetainedUser": "La cuenta realizó al menos {veryActiveThreshold} ediciones posteriores a la actividad, o realizó al menos {activeThreshold} ediciones distribuidas en 2 o más meses calendario distintos."
+  },
+
+  "limitationsTitle": "¿Qué no demuestra esta herramienta?",
+  "limitationsDescription": "Retention Checker muestra el comportamiento de edición posterior a una actividad. No demuestra que la actividad haya causado que una persona continuara editando. Los resultados deben interpretarse como evidencia de actividad posterior a la participación y no como una prueba de causalidad."
+},
+"analysisModes": {
+  "ariaLabel": "Fuente del análisis",
+  "manual": "Lista manual",
+  "dashboard": "Panel de Programas y Eventos"
+},
+"dashboard": {
+  "title": "Análisis desde Dashboard",
+  "courseLabel": "URL o identificador del curso",
+  "coursePlaceholder": "https://outreachdashboard.wmflabs.org/courses/Organización/Nombre_del_curso",
+  "courseHelp": "Pega la URL completa de un curso del Panel de Programas y Eventos o un identificador como Organización/Nombre_del_curso.",
+  "detectedSlug": "Curso detectado: {slug}",
+  "invalidInput": "Ingresa la URL de un curso de Dashboard o un identificador que incluya la organización y el nombre del curso.",
+  "loadCourse": "Cargar curso",
+  "loadingCourse": "Cargando curso...",
+  "loadFailed": "No se pudo cargar la información del curso.",
+  "previewTitle": "Vista previa del curso",
+  "courseTitle": "Curso",
+  "organization": "Organización",
+  "participants": "Participantes",
+  "staff": "Equipo o instructores",
+  "roleConflicts": "Conflictos de rol",
+  "wikiLabel": "Wiki para el análisis de retención",
+  "referenceDateLabel": "Fecha de referencia",
+  "roleConflictHelp": "Las cuentas que tienen tanto un rol de participante como un rol de equipo se excluyen de la lista predeterminada de participantes.",
+  "openCourse": "Abrir curso en Dashboard"
+}
+
+}

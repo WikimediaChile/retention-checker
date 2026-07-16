@@ -3,9 +3,15 @@ from typing import List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
 from pydantic import BaseModel
 
 from retention import analyze_manual_placeholder
+
+from dashboard_api import (
+    DashboardApiError,
+    get_dashboard_course_preview
+)
 
 app = FastAPI(title="Retention Checker API")
 
@@ -20,6 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class DashboardPreviewRequest(BaseModel):
+    course_slug: str
 
 class ManualAnalysisRequest(BaseModel):
     usernames: List[str]
@@ -42,3 +50,22 @@ def read_root():
 @app.post("/api/analyze/manual")
 def analyze_manual(request: ManualAnalysisRequest):
     return analyze_manual_placeholder(request)
+
+@app.post("/api/dashboard/preview")
+def preview_dashboard_course(
+    request: DashboardPreviewRequest
+):
+    try:
+        return get_dashboard_course_preview(
+            request.course_slug
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+    except DashboardApiError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc)
+        ) from exc

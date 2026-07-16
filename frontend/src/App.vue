@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 
 import { Bar } from 'vue-chartjs'
 import {
@@ -18,7 +19,30 @@ ChartJS.register(
   Tooltip
 )
 
+const { t, locale } = useI18n({
+  useScope: 'global'
+})
+
+watch(
+  locale,
+  (newLocale) => {
+    localStorage.setItem('retention-checker-locale', newLocale)
+    document.documentElement.lang = newLocale
+  },
+  {
+    immediate: true
+  }
+)
+
+
 const activeTab = ref('analyze')
+const analysisMode = ref('manual')
+const dashboardCourseInput = ref('')
+const dashboardPreview = ref(null)
+const dashboardLoading = ref(false)
+const dashboardError = ref('')
+const dashboardWiki = ref('')
+const dashboardReferenceDate = ref('')
 const usernamesText = ref('')
 const wiki = ref('eswiki')
 const referenceDate = ref('')
@@ -29,6 +53,96 @@ const veryActiveEditThreshold = ref(20)
 const loading = ref(false)
 const error = ref('')
 const result = ref(null)
+
+watch(dashboardCourseInput, () => {
+  dashboardPreview.value = null
+  dashboardError.value = ''
+  dashboardWiki.value = ''
+  dashboardReferenceDate.value = ''
+})
+
+function safelyDecodeUrlComponent(value) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function normalizeDashboardCourseInput(value) {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return ''
+  }
+
+  try {
+    const url = new URL(trimmedValue)
+    const coursePathMarker = '/courses/'
+    const markerPosition = url.pathname.indexOf(coursePathMarker)
+
+    if (markerPosition === -1) {
+      return ''
+    }
+
+    const coursePath = url.pathname
+      .slice(markerPosition + coursePathMarker.length)
+      .replace(/^\/+|\/+$/g, '')
+
+    return safelyDecodeUrlComponent(coursePath)
+  } catch {
+    const coursePath = trimmedValue.replace(/^\/+|\/+$/g, '')
+
+    return safelyDecodeUrlComponent(coursePath)
+  }
+}
+
+const dashboardCourseSlug = computed(() => {
+  return normalizeDashboardCourseInput(dashboardCourseInput.value)
+})
+
+function selectAnalysisMode(mode) {
+  analysisMode.value = mode
+  error.value = ''
+  result.value = null
+}
+
+async function loadDashboardPreview() {
+  dashboardError.value = ''
+  dashboardPreview.value = null
+
+  if (!dashboardCourseSlug.value) {
+    dashboardError.value = t('dashboard.invalidInput')
+    return
+  }
+
+  dashboardLoading.value = true
+
+  try {
+    const response = await axios.post(
+      'http://127.0.0.1:8000/api/dashboard/preview',
+      {
+        course_slug: dashboardCourseSlug.value
+      }
+    )
+
+    dashboardPreview.value = response.data
+
+    dashboardWiki.value =
+      response.data.suggested_wiki || ''
+
+    dashboardReferenceDate.value =
+      response.data.suggested_reference_date || ''
+  } catch (err) {
+    console.error(err)
+
+    dashboardError.value =
+      err.response?.data?.detail
+      || t('dashboard.loadFailed')
+  } finally {
+    dashboardLoading.value = false
+  }
+}
 
 async function runAnalysis() {
   error.value = ''
@@ -41,19 +155,19 @@ async function runAnalysis() {
     .filter(Boolean)
 
   if (usernames.length === 0) {
-    error.value = 'Please enter at least one username.'
+    error.value = t('errors.usernamesRequired')
     loading.value = false
     return
   }
 
   if (!wiki.value.trim()) {
-    error.value = 'Please enter a wiki, for example eswiki.'
+    error.value = t('errors.wikiRequired')
     loading.value = false
     return
   }
 
   if (!referenceDate.value) {
-    error.value = 'Please choose a reference date.'
+    error.value = t('errors.referenceDateRequired')
     loading.value = false
     return
   }
@@ -73,7 +187,7 @@ async function runAnalysis() {
     result.value = response.data
   } catch (err) {
     console.error(err)
-    error.value = 'Something went wrong while running the analysis. Check that the backend is running.'
+    error.value = t('errors.analysisFailed')
   } finally {
     loading.value = false
   }
@@ -161,34 +275,42 @@ const columns = [
 
 function formatAccountType(user) {
   if (user.status === 'user_not_found') {
-    return 'User not found'
+    return t('accountTypes.userNotFound')
   }
 
   if (user.status === 'bot_excluded') {
-    return 'Bot excluded'
+    return t('accountTypes.botExcluded')
   }
 
-  const labels = {
-    newbie: 'New account',
-    existing_user: 'Existing account',
-    unknown: 'Unknown account age',
-    created_after_reference_date: 'Created after reference date',
-    reactivated_editor: 'Existing account'
+  const translationKeys = {
+    newbie: 'accountTypes.newbie',
+    existing_user: 'accountTypes.existingUser',
+    unknown: 'accountTypes.unknown',
+    created_after_reference_date: 'accountTypes.createdAfterReferenceDate',
+    reactivated_editor: 'accountTypes.existingUser'
   }
 
-  return labels[user.experience_type] || user.experience_type || ''
+  const translationKey = translationKeys[user.experience_type]
+
+  return translationKey
+    ? t(translationKey)
+    : user.experience_type || ''
 }
 
 function formatRetentionCategory(value) {
-  const labels = {
-    not_retained: 'Not retained',
-    one_time_returner: 'One-time returner',
-    active_retained_user: 'Active retained user',
-    sustained_retained_user: 'Sustained retained user',
-    very_active_retained_user: 'Very active retained user'
+  const translationKeys = {
+    not_retained: 'retentionCategories.notRetained',
+    one_time_returner: 'retentionCategories.oneTimeReturner',
+    active_retained_user: 'retentionCategories.activeRetainedUser',
+    sustained_retained_user: 'retentionCategories.sustainedRetainedUser',
+    very_active_retained_user: 'retentionCategories.veryActiveRetainedUser'
   }
 
-  return labels[value] || value || ''
+  const translationKey = translationKeys[value]
+
+  return translationKey
+    ? t(translationKey)
+    : value || ''
 }
 
 function formatWindowValue(value) {
@@ -207,15 +329,7 @@ function formatRetentionPercentage(retentionSummary) {
   return `${retentionSummary.percentage}%`
 }
 
-const retentionChartData = computed(() => {
-  if (!result.value) {
-    return {
-      labels: [],
-      datasets: []
-    }
-  }
-
-  const retentionChartOptions = {
+const retentionChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -254,21 +368,31 @@ const retentionChartData = computed(() => {
     }
   }
 }
+
+const retentionChartData = computed(() => {
+  if (!result.value) {
+    return {
+      labels: [],
+      datasets: []
+    }
+  }
+
+
   const windows = [
     {
-      label: '30 days',
+      label: t('chart.windowDays', { days: 30 }),
       summary: result.value.summary.retained_30d
     },
     {
-      label: '90 days',
+      label: t('chart.windowDays', { days: 90 }),
       summary: result.value.summary.retained_90d
     },
     {
-      label: '180 days',
+      label: t('chart.windowDays', { days: 180 }),
       summary: result.value.summary.retained_180d
     },
     {
-      label: '360 days',
+      label: t('chart.windowDays', { days: 360 }),
       summary: result.value.summary.retained_360d
     }
   ]
@@ -281,7 +405,7 @@ const retentionChartData = computed(() => {
     labels: availableWindows.map((window) => window.label),
     datasets: [
       {
-        label: 'Retention percentage',
+        label: t('chart.datasetLabel'),
         data: availableWindows.map(
           (window) => window.summary.percentage
         ),
@@ -298,310 +422,345 @@ const retentionChartData = computed(() => {
 <template>
   <main class="page">
     <section class="hero">
-      <p class="eyebrow">Wikimedia post-activity analysis</p>
-      <h1>Retention Checker</h1>
-      <p class="description">
-        Analyze whether participants continued editing after an activity.
-        This first version supports manual username entry for one wiki.
-      </p>
-    </section>
+  <p class="eyebrow">
+    {{ t('app.eyebrow') }}
+  </p>
 
-    <nav class="tabs" aria-label="Retention Checker sections">
-      <button
-        class="tab-button"
-        :class="{ active: activeTab === 'analyze' }"
-        @click="activeTab = 'analyze'"
-      >
-        Analyze
-      </button>
+  <h1>
+    {{ t('app.name') }}
+  </h1>
 
-      <button
-        class="tab-button"
-        :class="{ active: activeTab === 'about' }"
-        @click="activeTab = 'about'"
-      >
-        About
-      </button>
-    </nav>
+  <p class="description">
+    {{ t('app.description') }}
+  </p>
+</section>
+
+    <div class="navigation-row">
+  <nav
+    class="tabs"
+    :aria-label="t('tabs.ariaLabel')"
+  >
+    <button
+      class="tab-button"
+      :class="{ active: activeTab === 'analyze' }"
+      @click="activeTab = 'analyze'"
+    >
+      {{ t('tabs.analyze') }}
+    </button>
+
+    <button
+      class="tab-button"
+      :class="{ active: activeTab === 'about' }"
+      @click="activeTab = 'about'"
+    >
+      {{ t('tabs.about') }}
+    </button>
+  </nav>
+
+  <label class="language-control">
+    <span>{{ t('language.label') }}</span>
+
+    <select
+      v-model="locale"
+      class="language-select"
+    >
+      <option value="en">
+        {{ t('language.english') }}
+      </option>
+
+      <option value="es">
+        {{ t('language.spanish') }}
+      </option>
+    </select>
+  </label>
+</div>
 
     <div v-if="activeTab === 'analyze'">
+
+      <nav
+        class="analysis-mode-tabs"
+        :aria-label="t('analysisModes.ariaLabel')"
+      >
+        <button
+          class="analysis-mode-button"
+          :class="{ active: analysisMode === 'manual' }"
+          @click="selectAnalysisMode('manual')"
+        >
+          {{ t('analysisModes.manual') }}
+        </button>
+
+        <button
+          class="analysis-mode-button"
+          :class="{ active: analysisMode === 'dashboard' }"
+          @click="selectAnalysisMode('dashboard')"
+        >
+          {{ t('analysisModes.dashboard') }}
+        </button>
+      </nav>
     
-    <section class="card">
-      <h2>Manual analysis</h2>
+    <section
+      v-if="analysisMode === 'manual'"
+      class="card"
+    >
+      <h2>{{ t('analysis.title') }}</h2>
 
       <label>
-        Usernames
+        {{ t('analysis.usernamesLabel') }}
+
         <textarea
           v-model="usernamesText"
           rows="8"
-          placeholder="One username per line"
+          :placeholder="t('analysis.usernamesPlaceholder')"
         ></textarea>
       </label>
 
       <div class="grid">
         <label>
-          Wiki
-          <input v-model="wiki" placeholder="eswiki" />
+          {{ t('analysis.wikiLabel') }}
+
+          <input
+            v-model="wiki"
+            :placeholder="t('analysis.wikiPlaceholder')"
+          />
         </label>
 
         <label>
-          Reference date
-          <input v-model="referenceDate" type="date" />
+          {{ t('analysis.referenceDateLabel') }}
+
+          <input
+            v-model="referenceDate"
+            type="date"
+          />
         </label>
       </div>
 
       <details class="advanced-settings">
-        <summary>Advanced settings</summary>
+        <summary>
+          {{ t('analysis.advancedSettings') }}
+        </summary>
 
         <div class="grid settings-grid">
           <label>
-            New account threshold, in days
+            {{ t('analysis.newbieThresholdLabel') }}
+
             <input
               v-model="newbieThresholdDays"
               type="number"
               min="0"
             />
+
             <small>
-              Users registered within this many days before the reference date are counted as new accounts.
+              {{ t('analysis.newbieThresholdHelp') }}
             </small>
           </label>
 
           <label>
-            Pre-event activity window, in days
+            {{ t('analysis.preEventWindowLabel') }}
+
             <input
               v-model="reactivationThresholdDays"
               type="number"
               min="0"
             />
+
             <small>
-              Used for the pre-event edits column. Default: 90 days before the reference date.
+              {{ t('analysis.preEventWindowHelp') }}
             </small>
           </label>
 
           <label>
-            Active retained threshold, edits
+            {{ t('analysis.activeThresholdLabel') }}
+
             <input
               v-model="activeEditThreshold"
               type="number"
               min="1"
             />
+
             <small>
-              Minimum post-activity edits needed to count as active retained.
+              {{ t('analysis.activeThresholdHelp') }}
             </small>
           </label>
 
           <label>
-            Very active threshold, edits
+            {{ t('analysis.veryActiveThresholdLabel') }}
+
             <input
               v-model="veryActiveEditThreshold"
               type="number"
               min="1"
             />
+
             <small>
-              Minimum post-activity edits needed to count as very active retained.
+              {{ t('analysis.veryActiveThresholdHelp') }}
             </small>
           </label>
         </div>
       </details>
 
-      <button @click="runAnalysis" :disabled="loading">
-        {{ loading ? 'Running analysis...' : 'Run analysis' }}
+      <button
+        @click="runAnalysis"
+        :disabled="loading"
+      >
+        {{
+          loading
+            ? t('analysis.running')
+            : t('analysis.run')
+        }}
       </button>
 
-      <p v-if="error" class="error">{{ error }}</p>
-    </section>
-    </div>
-
-    <section v-if="activeTab === 'about'" class="card about-card">
-      <h2>About Retention Checker</h2>
-
-      <p>
-        Retention Checker helps Wikimedia organizers analyze whether participants
-        continued editing after an activity, such as a workshop, campaign,
-        edit-a-thon, course, or training.
-      </p>
-
-      <h3>What does the reference date mean?</h3>
-      <p>
-        The reference date is the date from which post-activity editing is measured.
-        In most cases, this should be the end date of the activity.
-      </p>
-
-      <h3>What edits are counted?</h3>
-      <p>
-        For this version, the tool counts only visible edits in the main namespace
-        of the selected wiki. On Wikipedia, this means article edits. On Wikidata,
-        this means item edits. On Commons, this means file-page edits.
-      </p>
-
-      <h3>How do retention windows work?</h3>
-      <p>
-        Retention windows are cumulative. For example, 90-day retention counts edits
-        made from the reference date through 90 days after that date.
-      </p>
-
-      <p>
-        If not enough time has passed for a window, the tool shows <strong>"—"</strong>
-        instead of zero. This means the window is not available yet, not that the user
-        had no edits.
-      </p>
-
-      <h3>What are pre-event edits?</h3>
-      <p>
-        Pre-event edits are main-namespace edits made before the reference date,
-        within the selected pre-event activity window. The default window is 90 days.
-        This helps identify whether an existing account was recently active before
-        the activity.
-      </p>
-
-      <h3>Account types</h3>
-      <table class="about-table">
-        <thead>
-          <tr>
-            <th>Account type</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>New account</td>
-            <td>The account was created within the selected new-account threshold before the reference date.</td>
-          </tr>
-          <tr>
-            <td>Existing account</td>
-            <td>The account was created before the new-account threshold.</td>
-          </tr>
-          <tr>
-            <td>Unknown account age</td>
-            <td>The account is valid, but the registration date is unavailable from the API. This can happen with older accounts.</td>
-          </tr>
-          <tr>
-            <td>Created after reference date</td>
-            <td>The account was created after the selected reference date.</td>
-          </tr>
-          <tr>
-            <td>User not found</td>
-            <td>The username could not be found on the selected wiki.</td>
-          </tr>
-          <tr>
-            <td>Bot excluded</td>
-            <td>The account appears to be a bot and is excluded from valid user counts.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h3>Retention categories</h3>
-      <table class="about-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Not retained</td>
-            <td>
-              The user made 0 main-namespace edits after the reference date in the available analysis window.
-            </td>
-          </tr>
-          <tr>
-            <td>One-time returner</td>
-            <td>
-              The user made at least 1 main-namespace edit after the reference date, but fewer than the active retained threshold, and edited in only one month.
-            </td>
-          </tr>
-          <tr>
-            <td>Active retained user</td>
-            <td>
-              The user reached the selected active retained threshold. By default, this means 5 or more main-namespace edits after the reference date.
-            </td>
-          </tr>
-          <tr>
-            <td>Sustained retained user</td>
-            <td>
-              The user edited in at least 2 different months after the reference date, even if they did not reach the very active threshold.
-            </td>
-          </tr>
-          <tr>
-            <td>Very active retained user</td>
-            <td>
-              The user reached the selected very active threshold, or met both active and sustained conditions. By default, this means either 20 or more edits, or 5 or more edits across at least 2 months.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h3>What does this tool not prove?</h3>
-      <p>
-        Retention Checker shows post-activity editing behavior. It does not prove
-        that an activity caused a user to continue editing. The results should be
-        interpreted as evidence of continued activity after participation.
+      <p
+        v-if="error"
+        class="error"
+      >
+        {{ error }}
       </p>
     </section>
 
-    <section v-if="result" class="card">
-      <h2>Summary</h2>
+    <section
+      v-if="analysisMode === 'dashboard'"
+      class="card"
+    >
+      <h2>{{ t('dashboard.title') }}</h2>
 
-      <div class="summary-grid">
-        <div class="summary-card">
-          <span>Total submitted</span>
-          <strong>{{ result.summary.total_users_submitted }}</strong>
+      <label>
+        {{ t('dashboard.courseLabel') }}
+
+        <input
+          v-model="dashboardCourseInput"
+          type="text"
+          :placeholder="t('dashboard.coursePlaceholder')"
+        />
+
+        <small>
+          {{ t('dashboard.courseHelp') }}
+        </small>
+      </label>
+
+      <p
+        v-if="dashboardCourseSlug"
+        class="detected-course"
+      >
+        {{
+          t('dashboard.detectedSlug', {
+            slug: dashboardCourseSlug
+          })
+        }}
+      </p>
+
+      <button
+        @click="loadDashboardPreview"
+        :disabled="
+          dashboardLoading
+          || !dashboardCourseSlug
+        "
+      >
+        {{
+          dashboardLoading
+            ? t('dashboard.loadingCourse')
+            : t('dashboard.loadCourse')
+        }}
+      </button>
+
+      <p
+        v-if="dashboardError"
+        class="error"
+      >
+        {{ dashboardError }}
+      </p>
+
+      <div
+        v-if="dashboardPreview"
+        class="dashboard-preview"
+      >
+        <div class="section-header">
+          <h3>{{ t('dashboard.previewTitle') }}</h3>
+
+          <a
+            :href="dashboardPreview.course_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="course-link"
+          >
+            {{ t('dashboard.openCourse') }}
+          </a>
         </div>
 
-        <div class="summary-card">
-          <span>Duplicates removed</span>
-          <strong>{{ result.summary.duplicate_or_removed_usernames }}</strong>
+        <div class="dashboard-preview-grid">
+          <div class="preview-item">
+            <span>{{ t('dashboard.courseTitle') }}</span>
+            <strong>
+              {{ dashboardPreview.title || '—' }}
+            </strong>
+          </div>
+
+          <div class="preview-item">
+            <span>{{ t('dashboard.organization') }}</span>
+            <strong>
+              {{ dashboardPreview.organization || '—' }}
+            </strong>
+          </div>
+
+          <div class="preview-item">
+            <span>{{ t('dashboard.participants') }}</span>
+            <strong>
+              {{ dashboardPreview.participant_count }}
+            </strong>
+          </div>
+
+          <div class="preview-item">
+            <span>{{ t('dashboard.staff') }}</span>
+            <strong>
+              {{ dashboardPreview.staff_count }}
+            </strong>
+          </div>
+
+          <div class="preview-item">
+            <span>{{ t('dashboard.roleConflicts') }}</span>
+            <strong>
+              {{ dashboardPreview.role_conflict_count }}
+            </strong>
+          </div>
         </div>
 
-        <div class="summary-card">
-          <span>Valid users</span>
-          <strong>{{ result.summary.valid_users }}</strong>
-        </div>
+        <p
+          v-if="dashboardPreview.role_conflict_count > 0"
+          class="dashboard-note"
+        >
+          {{ t('dashboard.roleConflictHelp') }}
+        </p>
 
-        <div class="summary-card">
-          <span>Invalid users</span>
-          <strong>{{ result.summary.invalid_users }}</strong>
-        </div>
+        <div class="grid dashboard-settings">
+          <label>
+            {{ t('dashboard.wikiLabel') }}
 
-        <div class="summary-card">
-          <span>New accounts</span>
-          <strong>{{ result.summary.newbies }}</strong>
-        </div>
+            <input
+              v-model="dashboardWiki"
+              type="text"
+              placeholder="enwiki"
+            />
+          </label>
 
-        <div class="summary-card">
-          <span>Existing accounts</span>
-          <strong>{{ result.summary.existing_users + result.summary.unknown_experience }}</strong>
-        </div>
+          <label>
+            {{ t('dashboard.referenceDateLabel') }}
 
-        <div class="summary-card">
-          <span>30-day retention</span>
-          <strong>{{ formatRetentionPercentage(result.summary.retained_30d) }}</strong>
-        </div>
-
-        <div class="summary-card">
-          <span>90-day retention</span>
-          <strong>{{ formatRetentionPercentage(result.summary.retained_90d) }}</strong>
-        </div>
-
-        <div class="summary-card">
-          <span>180-day retention</span>
-          <strong>{{ formatRetentionPercentage(result.summary.retained_180d) }}</strong>
-        </div>
-
-        <div class="summary-card">
-          <span>360-day retention</span>
-          <strong>{{ formatRetentionPercentage(result.summary.retained_360d) }}</strong>
+            <input
+              v-model="dashboardReferenceDate"
+              type="date"
+            />
+          </label>
         </div>
       </div>
     </section>
 
-    <section v-if="result" class="card">
-      <h2>Retention by window</h2>
+    <section
+      v-if="result && analysisMode === 'manual'"
+      class="card"
+    >
+      <h2>{{ t('chart.title') }}</h2>
 
       <p class="chart-description">
-        Percentage of valid users who made at least one main-namespace edit
-        within each available cumulative retention window.
+        {{ t('chart.description') }}
       </p>
 
       <div
@@ -611,59 +770,253 @@ const retentionChartData = computed(() => {
         <Bar
           :data="retentionChartData"
           :options="retentionChartOptions"
-          aria-label="Retention percentage by available time window"
+          :aria-label="t('chart.ariaLabel')"
         />
       </div>
 
       <p v-else class="empty-chart-message">
-        No retention windows are available yet.
+        {{ t('chart.empty') }}
       </p>
     </section>
 
-      <section v-if="result" class="card">
+      <section
+        v-if="result && analysisMode === 'manual'"
+        class="card"
+      >
         <div class="section-header">
-          <h2>User results</h2>
+          <h2>{{ t('results.title') }}</h2>
 
-          <button class="secondary-button" @click="downloadCsv">
-            Download CSV
+          <button
+            class="secondary-button"
+            @click="downloadCsv"
+          >
+            {{ t('results.downloadCsv') }}
           </button>
         </div>
 
         <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Account type</th>
-              <th>Pre-event edits</th>
-              <th>30d</th>
-              <th>90d</th>
-              <th>180d</th>
-              <th>360d</th>
-              <th>Active months</th>
-              <th>First post-activity edit</th>
-              <th>Last post-activity edit</th>
-              <th>Retention category</th>
-            </tr>
-          </thead>
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('results.columns.username') }}</th>
+                <th>{{ t('results.columns.accountType') }}</th>
+                <th>{{ t('results.columns.preEventEdits') }}</th>
+                <th>{{ t('results.columns.day30') }}</th>
+                <th>{{ t('results.columns.day90') }}</th>
+                <th>{{ t('results.columns.day180') }}</th>
+                <th>{{ t('results.columns.day360') }}</th>
+                <th>{{ t('results.columns.activeMonths') }}</th>
+                <th>{{ t('results.columns.firstPostActivityEdit') }}</th>
+                <th>{{ t('results.columns.lastPostActivityEdit') }}</th>
+                <th>{{ t('results.columns.retentionCategory') }}</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            <tr v-for="user in result.users" :key="user.username">
-            <td>{{ user.username }}</td>
-            <td>{{ formatAccountType(user) }}</td>
-            <td>{{ user.pre_event_edits_reactivation_window }}</td>
-            <td>{{ formatWindowValue(user.edits_30d) }}</td>
-            <td>{{ formatWindowValue(user.edits_90d) }}</td>
-            <td>{{ formatWindowValue(user.edits_180d) }}</td>
-            <td>{{ formatWindowValue(user.edits_360d) }}</td>
-            <td>{{ user.active_months }}</td>
-            <td>{{ user.first_post_activity_edit }}</td>
-            <td>{{ user.last_post_activity_edit }}</td>
-            <td>{{ formatRetentionCategory(user.retention_category) }}</td>
+            <tbody>
+              <tr
+                v-for="user in result.users"
+                :key="user.username"
+              >
+                <td>{{ user.username }}</td>
+                <td>{{ formatAccountType(user) }}</td>
+                <td>{{ user.pre_event_edits_reactivation_window }}</td>
+                <td>{{ formatWindowValue(user.edits_30d) }}</td>
+                <td>{{ formatWindowValue(user.edits_90d) }}</td>
+                <td>{{ formatWindowValue(user.edits_180d) }}</td>
+                <td>{{ formatWindowValue(user.edits_360d) }}</td>
+                <td>{{ user.active_months }}</td>
+                <td>{{ user.first_post_activity_edit }}</td>
+                <td>{{ user.last_post_activity_edit }}</td>
+                <td>
+                  {{ formatRetentionCategory(user.retention_category) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+    <section
+      v-if="activeTab === 'about'"
+      class="card about-card"
+    >
+      <h2>{{ t('about.title') }}</h2>
+
+      <p>{{ t('about.intro') }}</p>
+
+      <h3>{{ t('about.validUsersTitle') }}</h3>
+      <p>{{ t('about.validUsersDescription') }}</p>
+
+      <h3>{{ t('about.referenceDateTitle') }}</h3>
+      <p>{{ t('about.referenceDateDescription') }}</p>
+
+      <h3>{{ t('about.countedEditsTitle') }}</h3>
+      <p>{{ t('about.countedEditsDescription') }}</p>
+
+      <h3>{{ t('about.retentionWindowsTitle') }}</h3>
+      <p>{{ t('about.retentionWindowsDescription') }}</p>
+      <p>{{ t('about.unavailableWindowsDescription') }}</p>
+
+      <h3>{{ t('about.preEventEditsTitle') }}</h3>
+      <p>
+        {{
+          t('about.preEventEditsDescription', {
+            days: reactivationThresholdDays
+          })
+        }}
+      </p>
+
+      <h3>{{ t('about.accountTypesTitle') }}</h3>
+
+      <table class="about-table">
+        <thead>
+          <tr>
+            <th>{{ t('about.table.accountType') }}</th>
+            <th>{{ t('about.table.meaning') }}</th>
           </tr>
-          </tbody>
-        </table>
-      </div>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>{{ t('accountTypes.newbie') }}</td>
+            <td>
+              {{
+                t('about.accountTypeDescriptions.newbie', {
+                  days: newbieThresholdDays
+                })
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('accountTypes.existingUser') }}</td>
+            <td>
+              {{
+                t('about.accountTypeDescriptions.existingUser', {
+                  days: newbieThresholdDays
+                })
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('accountTypes.unknown') }}</td>
+            <td>
+              {{ t('about.accountTypeDescriptions.unknown') }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('accountTypes.createdAfterReferenceDate') }}</td>
+            <td>
+              {{
+                t(
+                  'about.accountTypeDescriptions.createdAfterReferenceDate'
+                )
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('accountTypes.userNotFound') }}</td>
+            <td>
+              {{ t('about.accountTypeDescriptions.userNotFound') }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('accountTypes.botExcluded') }}</td>
+            <td>
+              {{ t('about.accountTypeDescriptions.botExcluded') }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>{{ t('about.retentionCategoriesTitle') }}</h3>
+
+      <table class="about-table">
+        <thead>
+          <tr>
+            <th>{{ t('about.table.category') }}</th>
+            <th>{{ t('about.table.meaning') }}</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>{{ t('retentionCategories.notRetained') }}</td>
+            <td>
+              {{
+                t(
+                  'about.retentionCategoryDescriptions.notRetained'
+                )
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('retentionCategories.oneTimeReturner') }}</td>
+            <td>
+              {{
+                t(
+                  'about.retentionCategoryDescriptions.oneTimeReturner',
+                  {
+                    activeThreshold: activeEditThreshold
+                  }
+                )
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('retentionCategories.activeRetainedUser') }}</td>
+            <td>
+              {{
+                t(
+                  'about.retentionCategoryDescriptions.activeRetainedUser',
+                  {
+                    activeThreshold: activeEditThreshold,
+                    veryActiveThreshold: veryActiveEditThreshold
+                  }
+                )
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('retentionCategories.sustainedRetainedUser') }}</td>
+            <td>
+              {{
+                t(
+                  'about.retentionCategoryDescriptions.sustainedRetainedUser',
+                  {
+                    activeThreshold: activeEditThreshold
+                  }
+                )
+              }}
+            </td>
+          </tr>
+
+          <tr>
+            <td>{{ t('retentionCategories.veryActiveRetainedUser') }}</td>
+            <td>
+              {{
+                t(
+                  'about.retentionCategoryDescriptions.veryActiveRetainedUser',
+                  {
+                    activeThreshold: activeEditThreshold,
+                    veryActiveThreshold: veryActiveEditThreshold
+                  }
+                )
+              }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>{{ t('about.limitationsTitle') }}</h3>
+      <p>{{ t('about.limitationsDescription') }}</p>
     </section>
   </main>
 </template>
@@ -868,7 +1221,7 @@ th {
 .tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .tab-button {
@@ -937,6 +1290,117 @@ th {
   color: #9ca3af;
 }
 
+.navigation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.language-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  color: #cbd5e1;
+}
+
+.language-select {
+  padding: 9px 12px;
+  border: 1px solid #3a4656;
+  border-radius: 10px;
+  background: #0f141a;
+  color: #f5f7fa;
+  font: inherit;
+  cursor: pointer;
+}
+
+.analysis-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.analysis-mode-button {
+  background: transparent;
+  color: #cbd5e1;
+  border: 1px solid #3a4656;
+}
+
+.analysis-mode-button.active {
+  background: #263241;
+  color: #ffffff;
+  border-color: #6d8cff;
+}
+
+.detected-course {
+  padding: 12px 14px;
+  border: 1px solid #365846;
+  border-radius: 10px;
+  background: #13231b;
+  color: #bbf7d0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-next-step {
+  color: #9ca3af;
+  font-size: 0.92rem;
+}
+
+.dashboard-preview {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #2a3441;
+}
+
+.dashboard-preview h3 {
+  margin: 0;
+}
+
+.dashboard-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.preview-item {
+  padding: 14px;
+  border: 1px solid #2a3441;
+  border-radius: 10px;
+  background: #0f141a;
+}
+
+.preview-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: #9ca3af;
+  font-size: 0.88rem;
+}
+
+.preview-item strong {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-settings {
+  margin-top: 20px;
+}
+
+.dashboard-note {
+  color: #fcd34d;
+  line-height: 1.5;
+}
+
+.course-link {
+  color: #91a6ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.course-link:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 800px) {
   .grid,
   .summary-grid {
@@ -946,5 +1410,20 @@ th {
   h1 {
     font-size: 2.2rem;
   }
+
+  .navigation-row {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.language-control {
+  width: 100%;
+  justify-content: space-between;
+}
+.dashboard-preview-grid {
+  grid-template-columns: 1fr;
+}
+
 }
 </style>
