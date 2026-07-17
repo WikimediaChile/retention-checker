@@ -165,7 +165,22 @@
   "wikiLabel": "Wiki para el análisis de retención",
   "referenceDateLabel": "Fecha de referencia",
   "roleConflictHelp": "Las cuentas que tienen tanto un rol de participante como un rol de equipo se excluyen de la lista predeterminada de participantes.",
-  "openCourse": "Abrir curso en Dashboard"
+  "openCourse": "Abrir curso en Dashboard",
+  "runAnalysis": "Ejecutar análisis de retención",
+  "runningAnalysis": "Ejecutando análisis de retención...",
+  "previewRequired": "Carga un curso de Dashboard antes de ejecutar el análisis.",
+  "noParticipants": "Este curso no contiene participantes que puedan incluirse en el análisis.",
+  "wikiRequired": "Ingresa una wiki para el análisis de retención.",
+  "referenceDateRequired": "Selecciona una fecha de referencia para el análisis de retención.",
+  "analysisFailed": "Se produjo un error al analizar las personas participantes del curso."
+},
+"settings": {
+  "apply": "Aplicar configuración",
+  "applied": "Configuración aplicada",
+  "notApplied": "La configuración cambió. Aplícala antes de ejecutar un nuevo análisis.",
+  "applyBeforeAnalysis": "Aplica la configuración avanzada antes de ejecutar el análisis.",
+  "invalidValues": "Ingresa valores válidos y positivos en toda la configuración avanzada.",
+  "veryActiveBelowActive": "El umbral de actividad muy alta no puede ser menor que el umbral de retención activa."
 }
 
 }

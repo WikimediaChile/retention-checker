@@ -162,7 +162,22 @@
   "wikiLabel": "Wiki for retention analysis",
   "referenceDateLabel": "Reference date",
   "roleConflictHelp": "Accounts with both participant and staff roles are excluded from the default participant list.",
-  "openCourse": "Open course in Dashboard"
+  "openCourse": "Open course in Dashboard",
+  "runAnalysis": "Run retention analysis",
+  "runningAnalysis": "Running retention analysis...",
+  "previewRequired": "Load a Dashboard course before running the analysis.",
+  "noParticipants": "This course does not contain any eligible participants.",
+  "wikiRequired": "Enter a wiki for the retention analysis.",
+  "referenceDateRequired": "Choose a reference date for the retention analysis.",
+  "analysisFailed": "Something went wrong while analyzing the Dashboard participants."
+},
+"settings": {
+  "apply": "Apply settings",
+  "applied": "Settings applied",
+  "notApplied": "Settings have changed. Apply them before running a new analysis.",
+  "applyBeforeAnalysis": "Apply the advanced settings before running the analysis.",
+  "invalidValues": "Enter valid positive values for all advanced settings.",
+  "veryActiveBelowActive": "The very active threshold cannot be lower than the active retained threshold."
 }
 
 } 

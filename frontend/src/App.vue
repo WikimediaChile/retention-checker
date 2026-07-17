@@ -50,6 +50,14 @@ const newbieThresholdDays = ref(60)
 const reactivationThresholdDays = ref(90)
 const activeEditThreshold = ref(5)
 const veryActiveEditThreshold = ref(20)
+const appliedSettings = ref({
+  newbieThresholdDays: 60,
+  reactivationThresholdDays: 90,
+  activeEditThreshold: 5,
+  veryActiveEditThreshold: 20
+})
+const settingsAreApplied = ref(true)
+const settingsError = ref('')
 const loading = ref(false)
 const error = ref('')
 const result = ref(null)
@@ -59,7 +67,22 @@ watch(dashboardCourseInput, () => {
   dashboardError.value = ''
   dashboardWiki.value = ''
   dashboardReferenceDate.value = ''
+  error.value = ''
+  result.value = null
 })
+
+watch(
+  [
+    newbieThresholdDays,
+    reactivationThresholdDays,
+    activeEditThreshold,
+    veryActiveEditThreshold
+  ],
+  () => {
+    settingsAreApplied.value = false
+    settingsError.value = ''
+  }
+)
 
 function safelyDecodeUrlComponent(value) {
   try {
@@ -144,10 +167,126 @@ async function loadDashboardPreview() {
   }
 }
 
+async function runDashboardAnalysis() {
+  error.value = ''
+  result.value = null
+  if (!settingsAreApplied.value) {
+    error.value = t('settings.applyBeforeAnalysis')
+    return
+}
+
+  if (!dashboardPreview.value) {
+    error.value = t('dashboard.previewRequired')
+    return
+  }
+
+  const usernames =
+    dashboardPreview.value.participant_usernames || []
+
+  if (usernames.length === 0) {
+    error.value = t('dashboard.noParticipants')
+    return
+  }
+
+  if (!dashboardWiki.value.trim()) {
+    error.value = t('dashboard.wikiRequired')
+    return
+  }
+
+  if (!dashboardReferenceDate.value) {
+    error.value = t('dashboard.referenceDateRequired')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    const response = await axios.post(
+      'http://127.0.0.1:8000/api/analyze/manual',
+      {
+        usernames,
+        wiki: dashboardWiki.value.trim(),
+        reference_date: dashboardReferenceDate.value,
+        retention_windows: [30, 90, 180, 360],
+        newbie_threshold_days:
+          appliedSettings.value.newbieThresholdDays,
+
+        reactivation_threshold_days:
+          appliedSettings.value.reactivationThresholdDays,
+
+        active_edit_threshold:
+          appliedSettings.value.activeEditThreshold,
+
+        very_active_edit_threshold:
+          appliedSettings.value.veryActiveEditThreshold
+      }
+    )
+
+    result.value = response.data
+  } catch (err) {
+    console.error(err)
+
+    error.value =
+      err.response?.data?.detail
+      || t('dashboard.analysisFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+function applyAdvancedSettings() {
+  settingsError.value = ''
+
+  const newAccountDays = Number(newbieThresholdDays.value)
+  const preEventDays = Number(reactivationThresholdDays.value)
+  const activeThreshold = Number(activeEditThreshold.value)
+  const veryActiveThreshold = Number(
+    veryActiveEditThreshold.value
+  )
+
+  if (
+    !Number.isFinite(newAccountDays)
+    || newAccountDays < 0
+    || !Number.isFinite(preEventDays)
+    || preEventDays < 0
+    || !Number.isFinite(activeThreshold)
+    || activeThreshold < 1
+    || !Number.isFinite(veryActiveThreshold)
+    || veryActiveThreshold < 1
+  ) {
+    settingsError.value = t('settings.invalidValues')
+    return
+  }
+
+  if (veryActiveThreshold < activeThreshold) {
+    settingsError.value = t(
+      'settings.veryActiveBelowActive'
+    )
+    return
+  }
+
+  appliedSettings.value = {
+    newbieThresholdDays: newAccountDays,
+    reactivationThresholdDays: preEventDays,
+    activeEditThreshold: activeThreshold,
+    veryActiveEditThreshold: veryActiveThreshold
+  }
+
+  settingsAreApplied.value = true
+
+  // Existing results used the previous settings.
+  result.value = null
+  error.value = ''
+}
+
 async function runAnalysis() {
   error.value = ''
   result.value = null
-  loading.value = true
+  if (!settingsAreApplied.value) {
+  error.value = t('settings.applyBeforeAnalysis')
+  loading.value = false
+  return
+}
 
   const usernames = usernamesText.value
     .split('\n')
@@ -178,10 +317,14 @@ async function runAnalysis() {
       wiki: wiki.value.trim(),
       reference_date: referenceDate.value,
       retention_windows: [30, 90, 180, 360],
-      newbie_threshold_days: Number(newbieThresholdDays.value),
-      reactivation_threshold_days: Number(reactivationThresholdDays.value),
-      active_edit_threshold: Number(activeEditThreshold.value),
-      very_active_edit_threshold: Number(veryActiveEditThreshold.value)
+      newbie_threshold_days:
+        appliedSettings.value.newbieThresholdDays,
+      reactivation_threshold_days:
+        appliedSettings.value.reactivationThresholdDays,
+      active_edit_threshold:
+        appliedSettings.value.activeEditThreshold,
+      very_active_edit_threshold:
+        appliedSettings.value.veryActiveEditThreshold
     })
 
     result.value = response.data
@@ -497,44 +640,7 @@ const retentionChartData = computed(() => {
           {{ t('analysisModes.dashboard') }}
         </button>
       </nav>
-    
-    <section
-      v-if="analysisMode === 'manual'"
-      class="card"
-    >
-      <h2>{{ t('analysis.title') }}</h2>
-
-      <label>
-        {{ t('analysis.usernamesLabel') }}
-
-        <textarea
-          v-model="usernamesText"
-          rows="8"
-          :placeholder="t('analysis.usernamesPlaceholder')"
-        ></textarea>
-      </label>
-
-      <div class="grid">
-        <label>
-          {{ t('analysis.wikiLabel') }}
-
-          <input
-            v-model="wiki"
-            :placeholder="t('analysis.wikiPlaceholder')"
-          />
-        </label>
-
-        <label>
-          {{ t('analysis.referenceDateLabel') }}
-
-          <input
-            v-model="referenceDate"
-            type="date"
-          />
-        </label>
-      </div>
-
-      <details class="advanced-settings">
+      <details class="advanced-settings shared-settings">
         <summary>
           {{ t('analysis.advancedSettings') }}
         </summary>
@@ -596,7 +702,73 @@ const retentionChartData = computed(() => {
             </small>
           </label>
         </div>
+        <div class="settings-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            @click="applyAdvancedSettings"
+          >
+            {{ t('settings.apply') }}
+          </button>
+
+          <span
+            v-if="settingsAreApplied"
+            class="settings-status settings-status-applied"
+          >
+            {{ t('settings.applied') }}
+          </span>
+
+          <span
+            v-else
+            class="settings-status settings-status-pending"
+          >
+            {{ t('settings.notApplied') }}
+          </span>
+        </div>
+
+        <p
+          v-if="settingsError"
+          class="error"
+        >
+          {{ settingsError }}
+        </p>
       </details>
+    
+    <section
+      v-if="analysisMode === 'manual'"
+      class="card"
+    >
+      <h2>{{ t('analysis.title') }}</h2>
+
+      <label>
+        {{ t('analysis.usernamesLabel') }}
+
+        <textarea
+          v-model="usernamesText"
+          rows="8"
+          :placeholder="t('analysis.usernamesPlaceholder')"
+        ></textarea>
+      </label>
+
+      <div class="grid">
+        <label>
+          {{ t('analysis.wikiLabel') }}
+
+          <input
+            v-model="wiki"
+            :placeholder="t('analysis.wikiPlaceholder')"
+          />
+        </label>
+
+        <label>
+          {{ t('analysis.referenceDateLabel') }}
+
+          <input
+            v-model="referenceDate"
+            type="date"
+          />
+        </label>
+      </div>
 
       <button
         @click="runAnalysis"
@@ -751,38 +923,97 @@ const retentionChartData = computed(() => {
           </label>
         </div>
       </div>
+      <button
+        @click="runDashboardAnalysis"
+        :disabled="loading"
+      >
+        {{
+          loading
+            ? t('dashboard.runningAnalysis')
+            : t('dashboard.runAnalysis')
+        }}
+      </button>
+
+      <p
+        v-if="error"
+        class="error"
+      >
+        {{ error }}
+      </p>
     </section>
 
-    <section
-      v-if="result && analysisMode === 'manual'"
-      class="card"
-    >
-      <h2>{{ t('chart.title') }}</h2>
+    <section v-if="result" class="card">
+      <h2>{{ t('summary.title') }}</h2>
 
-      <p class="chart-description">
-        {{ t('chart.description') }}
-      </p>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span>{{ t('summary.totalSubmitted') }}</span>
+          <strong>{{ result.summary.total_users_submitted }}</strong>
+        </div>
 
-      <div
-        v-if="retentionChartData.labels.length > 0"
-        class="chart-container"
-      >
-        <Bar
-          :data="retentionChartData"
-          :options="retentionChartOptions"
-          :aria-label="t('chart.ariaLabel')"
-        />
+        <div class="summary-card">
+          <span>{{ t('summary.duplicatesRemoved') }}</span>
+          <strong>
+            {{ result.summary.duplicate_or_removed_usernames }}
+          </strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.validUsers') }}</span>
+          <strong>{{ result.summary.valid_users }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.invalidUsers') }}</span>
+          <strong>{{ result.summary.invalid_users }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.newAccounts') }}</span>
+          <strong>{{ result.summary.newbies }}</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.existingOrUnknownAccounts') }}</span>
+          <strong>
+            {{
+              result.summary.existing_users
+              + result.summary.unknown_experience
+            }}
+          </strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.retention30') }}</span>
+          <strong>
+            {{ formatRetentionPercentage(result.summary.retained_30d) }}
+          </strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.retention90') }}</span>
+          <strong>
+            {{ formatRetentionPercentage(result.summary.retained_90d) }}
+          </strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.retention180') }}</span>
+          <strong>
+            {{ formatRetentionPercentage(result.summary.retained_180d) }}
+          </strong>
+        </div>
+
+        <div class="summary-card">
+          <span>{{ t('summary.retention360') }}</span>
+          <strong>
+            {{ formatRetentionPercentage(result.summary.retained_360d) }}
+          </strong>
+        </div>
       </div>
-
-      <p v-else class="empty-chart-message">
-        {{ t('chart.empty') }}
-      </p>
     </section>
 
-      <section
-        v-if="result && analysisMode === 'manual'"
-        class="card"
-      >
+      <section v-if="result" class="card">
         <div class="section-header">
           <h2>{{ t('results.title') }}</h2>
 
@@ -835,7 +1066,31 @@ const retentionChartData = computed(() => {
           </table>
         </div>
       </section>
+
+      <section v-if="result" class="card">
+        <h2>{{ t('chart.title') }}</h2>
+
+        <p class="chart-description">
+          {{ t('chart.description') }}
+        </p>
+
+        <div
+          v-if="retentionChartData.labels.length > 0"
+          class="chart-container"
+        >
+          <Bar
+            :data="retentionChartData"
+            :options="retentionChartOptions"
+            :aria-label="t('chart.ariaLabel')"
+          />
+        </div>
+
+        <p v-else class="empty-chart-message">
+          {{ t('chart.empty') }}
+        </p>
+      </section>
     </div>
+
     <section
       v-if="activeTab === 'about'"
       class="card about-card"
@@ -861,7 +1116,7 @@ const retentionChartData = computed(() => {
       <p>
         {{
           t('about.preEventEditsDescription', {
-            days: reactivationThresholdDays
+            days: appliedSettings.reactivationThresholdDays
           })
         }}
       </p>
@@ -882,7 +1137,7 @@ const retentionChartData = computed(() => {
             <td>
               {{
                 t('about.accountTypeDescriptions.newbie', {
-                  days: newbieThresholdDays
+                  days: appliedSettings.newbieThresholdDays
                 })
               }}
             </td>
@@ -893,7 +1148,7 @@ const retentionChartData = computed(() => {
             <td>
               {{
                 t('about.accountTypeDescriptions.existingUser', {
-                  days: newbieThresholdDays
+                  days: appliedSettings.newbieThresholdDays
                 })
               }}
             </td>
@@ -962,7 +1217,7 @@ const retentionChartData = computed(() => {
                 t(
                   'about.retentionCategoryDescriptions.oneTimeReturner',
                   {
-                    activeThreshold: activeEditThreshold
+                    activeThreshold: appliedSettings.activeEditThreshold
                   }
                 )
               }}
@@ -976,8 +1231,8 @@ const retentionChartData = computed(() => {
                 t(
                   'about.retentionCategoryDescriptions.activeRetainedUser',
                   {
-                    activeThreshold: activeEditThreshold,
-                    veryActiveThreshold: veryActiveEditThreshold
+                    activeThreshold: appliedSettings.activeEditThreshold,
+                    veryActiveThreshold: appliedSettings.veryActiveEditThreshold
                   }
                 )
               }}
@@ -991,7 +1246,7 @@ const retentionChartData = computed(() => {
                 t(
                   'about.retentionCategoryDescriptions.sustainedRetainedUser',
                   {
-                    activeThreshold: activeEditThreshold
+                    activeThreshold: appliedSettings.activeEditThreshold
                   }
                 )
               }}
@@ -1005,8 +1260,8 @@ const retentionChartData = computed(() => {
                 t(
                   'about.retentionCategoryDescriptions.veryActiveRetainedUser',
                   {
-                    activeThreshold: activeEditThreshold,
-                    veryActiveThreshold: veryActiveEditThreshold
+                    activeThreshold: appliedSettings.activeEditThreshold,
+                    veryActiveThreshold: appliedSettings.veryActiveEditThreshold
                   }
                 )
               }}
@@ -1399,6 +1654,32 @@ th {
 
 .course-link:hover {
   text-decoration: underline;
+}
+
+.shared-settings {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.settings-status {
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.settings-status-applied {
+  color: #bbf7d0;
+}
+
+.settings-status-pending {
+  color: #fcd34d;
 }
 
 @media (max-width: 800px) {
