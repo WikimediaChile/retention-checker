@@ -1,13 +1,11 @@
 # Retention Checker
 
-[![Status](https://img.shields.io/badge/status-in%20development-yellow)]()
+[![Status](<https://img.shields.io/badge/status-in%20development-yellow>)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A web application for analyzing whether Wikimedia participants continue editing after an activity.
 
-Retention Checker supports manual username lists and imports participants from the Wikimedia Programs & Events Dashboard. It calculates post-activity editing metrics, retention windows, account types, and retention categories using Wikimedia API data.
-
-
+Retention Checker supports manual username lists and imports participants from the [Programs &amp; Events Dashboard](https://outreachdashboard.wmflabs.org/). It calculates post-activity editing metrics, retention windows, account types, and retention categories using Wikimedia API data.
 
 ## About the Project
 
@@ -16,8 +14,6 @@ Retention Checker supports manual username lists and imports participants from t
 The tool analyzes editing activity after a selected reference date and provides cumulative retention results for 30, 90, 180, and 360 days.
 
 The project is currently under active development.
-
-
 
 ## Main Features
 
@@ -30,7 +26,7 @@ The project is currently under active development.
 - **Visual summary:** Display retention percentages in summary cards and charts.
 - **CSV export:** Download detailed user-level results.
 - **Multilingual interface:** Available in English and Spanish.
-- **Responsive dark interface:** Designed for desktop and smaller 
+- **Responsive dark interface:** Designed for desktop and smaller
 
 ## Built With
 
@@ -40,7 +36,7 @@ The project is currently under active development.
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [HTTPX](https://www.python-httpx.org/)
 - Wikimedia Action API
-- Wikimedia Programs & Events Dashboard API
+- Programs & Events Dashboard API
 
 ### Frontend
 
@@ -55,7 +51,7 @@ The project is currently under active development.
 
 The current version:
 
-* analyzes one Wikimedia wiki at a time;
+* analyzes one wiki at a time;
 * uses a selected reference date as the beginning of the post-activity period;
 * calculates cumulative retention windows;
 * excludes missing users and detected bot accounts from retention percentages;
@@ -72,7 +68,6 @@ Retention Checker measures editing activity after a selected activity or referen
 Some retention definitions and visualization ideas are informed by:
 
 Gutiérrez, Silvia and Krishna Chaitanya Velaga. Editor Retention: An Approximation. Wikimedia Foundation. CC BY 4.0.
-
 
 ### License
 
