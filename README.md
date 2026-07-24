@@ -47,7 +47,8 @@ The project is currently under active development.
 - [vue-chartjs](https://vue-chartjs.org/)
 - HTML5 and CSS3
 
-### Current Analysis Scope
+
+## Current Analysis Scope
 
 The current version:
 
@@ -61,7 +62,7 @@ The current version:
 
 Support for project-specific content namespaces, richer activity visualizations, and additional Wikimedia projects is still being developed.
 
-### Methodology
+## Methodology
 
 Retention Checker measures editing activity after a selected activity or reference date. The results show whether participants continued editing, but they do not prove that the activity caused that continued participation.
 
@@ -69,11 +70,11 @@ Some retention definitions and visualization ideas are informed by:
 
 Gutiérrez, Silvia and Krishna Chaitanya Velaga. Editor Retention: An Approximation. Wikimedia Foundation. CC BY 4.0.
 
-### License
+## License
 
 Distributed under the MIT License. See LICENSE for more information.
 
-### Contact
+## Contact
 
 Carla Toro — Soylacarli⁠￼
 
