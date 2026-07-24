@@ -1,7 +1,10 @@
 from datetime import datetime, timezone, timedelta
 
-from wikimedia_api import get_user_metadata_batch, get_user_contributions
-
+from wikimedia_api import (
+    get_content_namespaces,
+    get_user_metadata_batch,
+    get_user_contributions,
+)
 
 def normalize_usernames(usernames: list[str]) -> list[str]:   #Clean and deduplicate usernames/removes empty lines, trims spaces, deduplicates usernames case-insensitively
    
@@ -63,8 +66,6 @@ def classify_experience_type(
         return "unknown"
 
     reference_dt = reference_date_to_datetime(reference_date)
-
-    days_between = (reference_dt - registration_dt).days
 
     days_between = (reference_dt - registration_dt).days
 
@@ -223,7 +224,6 @@ def count_pre_event_edits(
         wiki=wiki,
         start_timestamp=start_timestamp,
         end_timestamp=end_timestamp,
-        namespace=0,
     )
 
     return len(contributions)
@@ -232,6 +232,7 @@ def count_pre_event_edits(
 def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real user metadata and real post-event edit counts. 
 
     cleaned_usernames = normalize_usernames(request.usernames)
+    content_namespaces = get_content_namespaces(request.wiki)
     duplicate_or_removed_usernames = len(request.usernames) - len(cleaned_usernames)
 
     user_metadata = get_user_metadata_batch(
@@ -246,6 +247,7 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
     existing_users = 0
     reactivated_editors = 0
     unknown_experience = 0
+    retention_eligible_users = 0
 
     retained_counts = {
         30: 0,
@@ -254,9 +256,13 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
         360: 0,
     }
 
-    active_retained_users = 0
-    sustained_retained_users = 0
-    very_active_retained_users = 0
+    category_counts = {
+        "not_retained": 0,
+        "one_time_returner": 0,
+        "active_retained_user": 0,
+        "sustained_retained_user": 0,
+        "very_active_retained_user": 0,
+    }
 
     max_window = max(request.retention_windows)
     reference_dt = reference_date_to_datetime(request.reference_date)
@@ -272,9 +278,11 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
         if is_missing:
             status = "user_not_found"
             experience_type = None
+            is_retention_eligible = False
             pre_event_edits = None
             reactivation_status = None
             invalid_users += 1
+            
 
             retention_metrics = {
                 "available_30d": False,
@@ -300,6 +308,7 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
         elif is_bot:
             status = "bot_excluded"
             experience_type = None
+            is_retention_eligible = False
             pre_event_edits = None
             reactivation_status = None
             bot_users += 1
@@ -332,15 +341,21 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
             experience_type = classify_experience_type(
                 registration_date=metadata["registration_date"],
                 reference_date=request.reference_date,
-                newbie_threshold_days=request.newbie_threshold_days
+                newbie_threshold_days=request.newbie_threshold_days,
             )
+
+            is_retention_eligible = (
+                experience_type != "created_after_reference_date"
+            )
+
+            if is_retention_eligible:
+                retention_eligible_users += 1
 
             contributions = get_user_contributions(
                 username=metadata["username"],
                 wiki=request.wiki,
                 start_timestamp=post_event_start_timestamp,
                 end_timestamp=post_event_end_timestamp,
-                namespace=0,
             )
 
             retention_metrics = calculate_retention_metrics(
@@ -356,12 +371,13 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
                 reactivation_threshold_days=request.reactivation_threshold_days,
             )
 
-            reactivation_status = None
-
             if experience_type == "existing_user":
                 existing_users += 1
 
-                if pre_event_edits == 0 and retention_metrics["total_edits"] > 0:
+                if (
+                    pre_event_edits == 0
+                    and retention_metrics["total_edits"] > 0
+                ):
                     reactivation_status = "reactivated"
                     reactivated_editors += 1
                 else:
@@ -370,32 +386,39 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
             elif experience_type == "newbie":
                 newbies += 1
 
-            else:
+            elif experience_type == "unknown":
                 unknown_experience += 1
 
-            retention_category = classify_retention_category(
-                total_edits=retention_metrics["total_edits"],
-                active_months=retention_metrics["active_months"],
-                active_edit_threshold=request.active_edit_threshold,
-                very_active_edit_threshold=request.very_active_edit_threshold,
-            )
+            total_edits = retention_metrics.get("total_edits")
+            active_months = retention_metrics.get("active_months")
 
-            for window in request.retention_windows:
-                if retention_metrics.get(f"retained_{window}d"):
-                    retained_counts[window] = retained_counts.get(window, 0) + 1
+            if (
+                is_retention_eligible
+                and total_edits is not None
+                and active_months is not None
+            ):
+                retention_category = classify_retention_category(
+                    total_edits=total_edits,
+                    active_months=active_months,
+                    active_edit_threshold=request.active_edit_threshold,
+                    very_active_edit_threshold=request.very_active_edit_threshold,
+                )
 
-            if retention_metrics["total_edits"] >= request.active_edit_threshold:
-                active_retained_users += 1
+                category_counts[retention_category] += 1
 
-            if retention_metrics["active_months"] >= 2:
-                sustained_retained_users += 1
+                for window in request.retention_windows:
+                    if retention_metrics.get(f"retained_{window}d"):
+                        retained_counts[window] = (
+                            retained_counts.get(window, 0) + 1
+                        )
 
-            if retention_category == "very_active_retained_user":
-                very_active_retained_users += 1
+            else:
+                retention_category = None
 
         users.append({
             "username": metadata["username"],
             "status": status,
+            "retention_eligible": is_retention_eligible,
             "registration_date": metadata["registration_date"],
             "experience_type": experience_type,
             "account_type": experience_type,
@@ -427,7 +450,7 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
             "wiki": request.wiki,
             "reference_date": str(request.reference_date),
             "retention_windows": request.retention_windows,
-            "namespace": 0,
+            "namespaces": content_namespaces,
             "reactivation_threshold_days": request.reactivation_threshold_days,
         },
         "summary": {
@@ -435,6 +458,7 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
             "cleaned_users": len(cleaned_usernames),
             "duplicate_or_removed_usernames": duplicate_or_removed_usernames,
             "valid_users": valid_users,
+            "retention_eligible_users": retention_eligible_users,
             "invalid_users": invalid_users,
             "bot_users": bot_users,
             "newbies": newbies,
@@ -444,30 +468,36 @@ def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real 
             "retained_30d": build_retention_summary(
                 window=30,
                 retained_counts=retained_counts,
-                valid_users=valid_users,
+                valid_users=retention_eligible_users,
                 reference_date=request.reference_date
             ),
             "retained_90d": build_retention_summary(
                 window=90,
                 retained_counts=retained_counts,
-                valid_users=valid_users,
+                valid_users=retention_eligible_users,
                 reference_date=request.reference_date
             ),
             "retained_180d": build_retention_summary(
                 window=180,
                 retained_counts=retained_counts,
-                valid_users=valid_users,
+                valid_users=retention_eligible_users,
                 reference_date=request.reference_date
             ),
             "retained_360d": build_retention_summary(
                 window=360,
                 retained_counts=retained_counts,
-                valid_users=valid_users,
+                valid_users=retention_eligible_users,
                 reference_date=request.reference_date
             ),
-            "active_retained_users": active_retained_users,
-            "sustained_retained_users": sustained_retained_users,
-            "very_active_retained_users": very_active_retained_users
+            "not_retained_users": category_counts["not_retained"],
+            "one_time_returners": category_counts["one_time_returner"],
+            "active_retained_users": category_counts["active_retained_user"],
+            "sustained_retained_users": category_counts[
+                "sustained_retained_user"
+            ],
+            "very_active_retained_users": category_counts[
+                "very_active_retained_user"
+            ]
         },
         "users": users
     }

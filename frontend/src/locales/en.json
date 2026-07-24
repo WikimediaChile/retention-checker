@@ -20,6 +20,7 @@
     "usernamesPlaceholder": "One username per line",
     "wikiLabel": "Wiki",
     "wikiPlaceholder": "eswiki",
+    "wikiHelp": "Examples: eswiki, enwiki, wikidata, or commons.",
     "referenceDateLabel": "Reference date",
     "advancedSettings": "Advanced settings",
     "newbieThresholdLabel": "New account threshold, in days",
@@ -102,15 +103,14 @@
   "referenceDateTitle": "What does the reference date mean?",
   "referenceDateDescription": "The reference date is the point from which post-activity editing is measured. In most cases, this should be the end date of the activity.",
 
-  "countedEditsTitle": "What edits are counted?",
-  "countedEditsDescription": "For this version, the tool counts only visible edits in namespace 0 of the selected wiki. On Wikipedia, this means article edits. On Wikidata, this means item edits. On Wikimedia Commons, file pages use a different namespace, so file-page edits are not currently counted.",
-
+  "countedEditsTitle": "Which edits are counted?",
+  "countedEditsDescription": "Retention Checker counts edits in the configured content namespaces for the selected Wikimedia project. For Wikipedia, it counts article edits. For Wikimedia Commons, it counts File namespace edits. For Wikidata, it counts edits to items, properties, lexemes, and EntitySchemas.",
   "retentionWindowsTitle": "How do retention windows work?",
   "retentionWindowsDescription": "Retention windows are cumulative. For example, 90-day retention counts edits made from the reference date through 90 days after that date, including activity already counted in the 30-day window.",
   "unavailableWindowsDescription": "If not enough time has passed for a window, the tool shows — instead of zero. — means that the window is not available yet. Zero means that the window is available and no edits were found.",
 
   "preEventEditsTitle": "What are pre-event edits?",
-  "preEventEditsDescription": "Pre-event edits are namespace-0 edits made before the reference date. With the current settings, the tool checks the {days} days before the reference date. This does not change the retention windows; it only provides context about the account's recent activity.",
+  "preEventEditsDescription": "Pre-event edits are namespace edits made before the reference date. With the current settings, the tool checks the {days} days before the reference date. This does not change the retention windows; it only provides context about the account's recent activity.",
 
   "accountTypesTitle": "Account types",
   "table": {
@@ -128,7 +128,7 @@
   },
   "retentionCategoriesTitle": "Retention categories",
   "retentionCategoryDescriptions": {
-    "notRetained": "The account made 0 namespace-0 edits after the reference date in the period currently analyzed.",
+    "notRetained": "The account made 0 namespace edits after the reference date in the period currently analyzed.",
     "oneTimeReturner": "The account made at least 1 but fewer than {activeThreshold} post-activity edits, with activity in only one calendar month.",
     "activeRetainedUser": "The account made at least {activeThreshold} but fewer than {veryActiveThreshold} post-activity edits, with activity in only one calendar month.",
     "sustainedRetainedUser": "The account edited in at least 2 different calendar months, but made fewer than {activeThreshold} post-activity edits in total.",
@@ -178,6 +178,11 @@
   "applyBeforeAnalysis": "Apply the advanced settings before running the analysis.",
   "invalidValues": "Enter valid positive values for all advanced settings.",
   "veryActiveBelowActive": "The very active threshold cannot be lower than the active retained threshold."
+},
+"footer": {
+  "madeWith": "Made with",
+  "by": "by",
+  "sourceCode": "Source code"
 }
 
 } 

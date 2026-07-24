@@ -20,6 +20,7 @@
     "usernamesPlaceholder": "Un nombre de usuario por línea",
     "wikiLabel": "Wiki",
     "wikiPlaceholder": "eswiki",
+    "wikiHelp": "Ejemplos: eswiki, enwiki, wikidata o commons.",
     "referenceDateLabel": "Fecha de referencia",
     "advancedSettings": "Configuración avanzada",
     "newbieThresholdLabel": "Umbral de cuenta nueva, en días",
@@ -103,15 +104,14 @@
   "referenceDateTitle": "¿Qué significa la fecha de referencia?",
   "referenceDateDescription": "La fecha de referencia es el punto desde el cual se mide la actividad de edición posterior. En la mayoría de los casos, debería corresponder a la fecha de término de la actividad.",
 
-  "countedEditsTitle": "¿Qué ediciones se cuentan?",
-  "countedEditsDescription": "En esta versión, la herramienta solo cuenta ediciones visibles en el espacio de nombres 0 de la wiki seleccionada. En Wikipedia, esto corresponde a ediciones de artículos. En Wikidata, corresponde a ediciones de elementos. En Wikimedia Commons, las páginas de archivo utilizan otro espacio de nombres, por lo que actualmente no se cuentan las ediciones de páginas de archivo.",
-
+"countedEditsTitle": "¿Qué ediciones se contabilizan?",
+"countedEditsDescription": "Retention Checker contabiliza las ediciones realizadas en los espacios de nombres de contenido configurados para el proyecto Wikimedia seleccionado. En Wikipedia, contabiliza ediciones en artículos. En Wikimedia Commons, contabiliza ediciones en el espacio de nombres de archivos. En Wikidata, contabiliza ediciones en ítems, propiedades, lexemas y EntitySchemas.",
   "retentionWindowsTitle": "¿Cómo funcionan las ventanas de retención?",
   "retentionWindowsDescription": "Las ventanas de retención son acumulativas. Por ejemplo, la retención a 90 días cuenta las ediciones realizadas desde la fecha de referencia hasta 90 días después, incluida la actividad que ya fue contabilizada en la ventana de 30 días.",
   "unavailableWindowsDescription": "Si todavía no ha pasado suficiente tiempo para una ventana, la herramienta muestra — en lugar de cero. — significa que la ventana aún no está disponible. Cero significa que la ventana ya está disponible y no se encontraron ediciones.",
 
   "preEventEditsTitle": "¿Qué son las ediciones previas?",
-  "preEventEditsDescription": "Las ediciones previas son ediciones en el espacio de nombres 0 realizadas antes de la fecha de referencia. Con la configuración actual, la herramienta revisa los {days} días anteriores a la fecha de referencia. Esto no modifica las ventanas de retención; solo entrega contexto sobre la actividad reciente de la cuenta.",
+  "preEventEditsDescription": "Las ediciones previas son ediciones en el espacio de nombres realizadas antes de la fecha de referencia. Con la configuración actual, la herramienta revisa los {days} días anteriores a la fecha de referencia. Esto no modifica las ventanas de retención; solo entrega contexto sobre la actividad reciente de la cuenta.",
 
   "accountTypesTitle": "Tipos de cuenta",
   "table": {
@@ -131,7 +131,7 @@
 
   "retentionCategoriesTitle": "Categorías de retención",
   "retentionCategoryDescriptions": {
-    "notRetained": "La cuenta realizó 0 ediciones en el espacio de nombres 0 después de la fecha de referencia durante el periodo analizado.",
+    "notRetained": "La cuenta realizó 0 ediciones en el espacio de nombres después de la fecha de referencia durante el periodo analizado.",
     "oneTimeReturner": "La cuenta realizó al menos 1 pero menos de {activeThreshold} ediciones posteriores a la actividad, con actividad en un solo mes calendario.",
     "activeRetainedUser": "La cuenta realizó al menos {activeThreshold} pero menos de {veryActiveThreshold} ediciones posteriores a la actividad, con actividad en un solo mes calendario.",
     "sustainedRetainedUser": "La cuenta editó en al menos 2 meses calendario distintos, pero realizó menos de {activeThreshold} ediciones posteriores a la actividad en total.",
@@ -181,6 +181,11 @@
   "applyBeforeAnalysis": "Aplica la configuración avanzada antes de ejecutar el análisis.",
   "invalidValues": "Ingresa valores válidos y positivos en toda la configuración avanzada.",
   "veryActiveBelowActive": "El umbral de actividad muy alta no puede ser menor que el umbral de retención activa."
+},
+"footer": {
+  "madeWith": "Hecho con",
+  "by": "por",
+  "sourceCode": "Código fuente"
 }
 
 }

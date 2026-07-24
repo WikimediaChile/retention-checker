@@ -311,6 +311,8 @@ async function runAnalysis() {
     return
   }
 
+  loading.value = true
+
   try {
     const response = await axios.post('http://127.0.0.1:8000/api/analyze/manual', {
       usernames,
@@ -758,6 +760,10 @@ const retentionChartData = computed(() => {
             v-model="wiki"
             :placeholder="t('analysis.wikiPlaceholder')"
           />
+
+          <small>
+            {{ t('analysis.wikiHelp') }}
+          </small>
         </label>
 
         <label>
@@ -1273,6 +1279,34 @@ const retentionChartData = computed(() => {
       <h3>{{ t('about.limitationsTitle') }}</h3>
       <p>{{ t('about.limitationsDescription') }}</p>
     </section>
+    <footer class="site-footer">
+      <p>
+        {{ t('footer.madeWith') }}
+        <span
+          class="footer-heart"
+          aria-hidden="true"
+        >
+          ♥
+        </span>
+        {{ t('footer.by') }}
+
+        <a
+          href="https://wikimedia.cl/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Wikimedia Chile
+        </a>
+      </p>
+
+      <a
+        href="https://github.com/WikimediaChile/retention-checker"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ t('footer.sourceCode') }}
+      </a>
+    </footer>
   </main>
 </template>
 
@@ -1682,6 +1716,37 @@ th {
   color: #fcd34d;
 }
 
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 4px 0;
+  margin-top: 32px;
+  border-top: 1px solid #2a3441;
+  color: #9ca3af;
+  font-size: 0.92rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.site-footer a {
+  color: #91a6ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.footer-heart {
+  color: #f87171;
+  margin: 0 3px;
+}
+
 @media (max-width: 800px) {
   .grid,
   .summary-grid {
@@ -1704,6 +1769,11 @@ th {
 }
 .dashboard-preview-grid {
   grid-template-columns: 1fr;
+}
+
+.site-footer {
+  align-items: flex-start;
+  flex-direction: column;
 }
 
 }
