@@ -16,17 +16,11 @@ HEADERS = {
 }
 
 
-class DashboardApiError(Exception):
+class DashboardApiError(Exception):  
     """Raised when Dashboard data cannot be retrieved or interpreted."""
 
 
 def validate_course_slug(course_slug: str) -> str:
-    """
-    Validate and normalize a Dashboard course slug.
-
-    Expected format:
-    Organization/Course_Name
-    """
     normalized_slug = course_slug.strip().strip("/")
     parts = normalized_slug.split("/")
 
@@ -117,10 +111,6 @@ def format_date_only(value: str | None) -> str | None:
 
 
 def suggest_wiki(home_wiki: dict | None) -> str | None:
-    """
-    Convert common Dashboard home-wiki values into the wiki identifiers
-    currently understood by Retention Checker.
-    """
     if not home_wiki:
         return None
 
@@ -143,12 +133,6 @@ def suggest_wiki(home_wiki: dict | None) -> str | None:
 
 
 def summarize_dashboard_users(user_records: list[dict]) -> dict:
-    """
-    Deduplicate Dashboard user records and separate participants from staff.
-
-    A username that has both participant and staff roles is treated as a
-    role conflict and excluded from the default participant list.
-    """
     roles_by_username: dict[str, set[int]] = defaultdict(set)
 
     for user in user_records:

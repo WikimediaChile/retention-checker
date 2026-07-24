@@ -1,16 +1,7 @@
 import httpx
 
 
-def get_api_url(wiki: str) -> str:
-    """
-    Convert a wiki database name into a MediaWiki API URL.
-
-    Examples:
-    - eswiki -> https://es.wikipedia.org/w/api.php
-    - enwiki -> https://en.wikipedia.org/w/api.php
-    - wikidatawiki -> https://www.wikidata.org/w/api.php
-    - commonswiki -> https://commons.wikimedia.org/w/api.php
-    """
+def get_api_url(wiki: str) -> str:  #Wiki database name to MediaWiki API URL converter.
 
     wiki = wiki.strip().lower()
 
@@ -33,10 +24,6 @@ def get_api_url(wiki: str) -> str:
 
 
 def get_headers() -> dict:
-    """
-    Wikimedia asks API clients to use a clear User-Agent.
-    Later we can replace this with the final Toolforge URL.
-    """
 
     return {
         "User-Agent": "RetentionChecker/0.1 (https://toolforge.org/; Wikimedia retention analysis prototype)"
@@ -44,18 +31,6 @@ def get_headers() -> dict:
 
 
 def get_user_metadata_batch(usernames: list[str], wiki: str) -> list[dict]:
-    """
-    Fetch basic user metadata from the Wikimedia API.
-
-    For each username, this returns:
-    - username
-    - user_id
-    - registration_date
-    - is_missing
-    - is_bot
-
-    This function does not calculate retention yet.
-    """
 
     api_url = get_api_url(wiki)
 
@@ -111,18 +86,6 @@ def get_user_contributions(
     end_timestamp: str,
     namespace: int = 0,
 ) -> list[dict]:
-    """
-    Fetch visible user contributions from a Wikimedia project.
-
-    For v0.1, we use namespace 0 only:
-    - Wikipedia articles
-    - Wikidata items
-    - Commons files
-    - Main content pages in other projects
-
-    Timestamps should look like:
-    2026-03-31T00:00:00Z
-    """
 
     api_url = get_api_url(wiki)
 

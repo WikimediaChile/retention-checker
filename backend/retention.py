@@ -3,15 +3,8 @@ from datetime import datetime, timezone, timedelta
 from wikimedia_api import get_user_metadata_batch, get_user_contributions
 
 
-def normalize_usernames(usernames: list[str]) -> list[str]:
-    """
-    Clean and deduplicate usernames.
-
-    - Removes empty lines
-    - Trims spaces
-    - Deduplicates usernames case-insensitively
-    """
-
+def normalize_usernames(usernames: list[str]) -> list[str]:   #Clean and deduplicate usernames/removes empty lines, trims spaces, deduplicates usernames case-insensitively
+   
     cleaned_usernames = []
     seen = set()
 
@@ -32,16 +25,8 @@ def normalize_usernames(usernames: list[str]) -> list[str]:
     return cleaned_usernames
 
 
-def parse_wikimedia_timestamp(timestamp: str | None) -> datetime | None:
-    """
-    Convert a Wikimedia timestamp string into a Python datetime.
-
-    Example input:
-    "2020-01-15T12:34:56Z"
-
-    If the timestamp is missing or invalid, return None.
-    """
-
+def parse_wikimedia_timestamp(timestamp: str | None) -> datetime | None:  #Convert a Wikimedia timestamp string into a Python datetime.
+  
     if not timestamp:
         return None
 
@@ -52,9 +37,6 @@ def parse_wikimedia_timestamp(timestamp: str | None) -> datetime | None:
 
 
 def reference_date_to_datetime(reference_date) -> datetime:
-    """
-    Convert FastAPI's date object into a UTC datetime at midnight.
-    """
 
     return datetime(
         year=reference_date.year,
@@ -65,9 +47,6 @@ def reference_date_to_datetime(reference_date) -> datetime:
 
 
 def datetime_to_wikimedia_timestamp(dt: datetime) -> str:
-    """
-    Convert a Python datetime into the timestamp format expected by Wikimedia APIs.
-    """
 
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -76,19 +55,7 @@ def classify_experience_type(
     registration_date: str | None,
     reference_date,
     newbie_threshold_days: int
-) -> str:
-    """
-    Classify a valid user as newbie, existing user, or unknown.
-
-    Newbie:
-    - Registered between reference_date - newbie_threshold_days and reference_date.
-
-    Existing user:
-    - Registered before that threshold.
-
-    Unknown:
-    - Registration date is unavailable or invalid.
-    """
+) -> str:  # Clasify a valid user as newbie, existing user, or unknown based on registration date and reference date.
 
     registration_dt = parse_wikimedia_timestamp(registration_date)
 
@@ -114,15 +81,7 @@ def calculate_retention_metrics(
     contributions: list[dict],
     reference_date,
     retention_windows: list[int],
-) -> dict:
-    """
-    Calculate cumulative retention metrics from post-event contributions.
-
-    A retention window is only available if enough time has passed since
-    the reference date. For example, 180-day retention should not be shown
-    as final if the reference date was only 90 days ago.
-    """
-
+) -> dict:                 #Calculate cumulative retention metrics from post-event contributions. 
     reference_dt = reference_date_to_datetime(reference_date)
 
     # "Today" in UTC, at midnight.
@@ -190,18 +149,8 @@ def classify_retention_category(
     active_months: int,
     active_edit_threshold: int,
     very_active_edit_threshold: int,
-) -> str:
-    """
-    Classify post-event retention level.
-
-    Priority order:
-    1. Not retained
-    2. Very active retained user
-    3. Sustained retained user
-    4. Active retained user
-    5. One-time returner
-    """
-
+) -> str:     #Classify post-event retention level.
+  
     if total_edits == 0:
         return "not_retained"
 
@@ -221,22 +170,12 @@ def classify_retention_category(
 
 
 def calculate_percentage(count: int, total: int) -> float:
-    """
-    Calculate percentage safely.
-    """
-
     if total == 0:
         return 0
 
     return round((count / total) * 100, 1)
 
 def build_retention_summary(window: int, retained_counts: dict, valid_users: int, reference_date) -> dict:
-    """
-    Build summary data for a retention window.
-
-    If the window is not available yet, return null values so the frontend
-    does not show misleading 0% retention.
-    """
 
     reference_dt = reference_date_to_datetime(reference_date)
 
@@ -271,17 +210,7 @@ def count_pre_event_edits(
     wiki: str,
     reference_date,
     reactivation_threshold_days: int,
-) -> int:
-    """
-    Count main-namespace edits before the reference date.
-
-    For v0.1, this is used to identify reactivated editors.
-
-    Reactivated editor logic:
-    - Existing user
-    - 0 main-namespace edits in the previous N days
-    - 1+ main-namespace edits after the reference date
-    """
+) -> int: 
 
     reference_dt = reference_date_to_datetime(reference_date)
     pre_event_start_dt = reference_dt - timedelta(days=reactivation_threshold_days)
@@ -300,20 +229,7 @@ def count_pre_event_edits(
     return len(contributions)
 
 
-def analyze_manual_placeholder(request) -> dict:
-    """
-    Manual analysis with real user metadata and real post-event edit counts.
-
-    This version:
-    - Cleans usernames
-    - Fetches real registration dates from Wikimedia
-    - Detects missing users
-    - Detects likely bots
-    - Classifies valid users as newbie or existing_user
-    - Detects reactivated editors
-    - Fetches main-namespace edits after the reference date
-    - Calculates cumulative retention windows
-    """
+def analyze_manual_placeholder(request) -> dict:     #Manual analysis with real user metadata and real post-event edit counts. 
 
     cleaned_usernames = normalize_usernames(request.usernames)
     duplicate_or_removed_usernames = len(request.usernames) - len(cleaned_usernames)
@@ -433,19 +349,17 @@ def analyze_manual_placeholder(request) -> dict:
                 retention_windows=request.retention_windows,
             )
 
-            pre_event_edits = None
+            pre_event_edits = count_pre_event_edits(
+                username=metadata["username"],
+                wiki=request.wiki,
+                reference_date=request.reference_date,
+                reactivation_threshold_days=request.reactivation_threshold_days,
+            )
 
             reactivation_status = None
 
             if experience_type == "existing_user":
                 existing_users += 1
-
-                pre_event_edits = count_pre_event_edits(
-                    username=metadata["username"],
-                    wiki=request.wiki,
-                    reference_date=request.reference_date,
-                    reactivation_threshold_days=request.reactivation_threshold_days,
-                )
 
                 if pre_event_edits == 0 and retention_metrics["total_edits"] > 0:
                     reactivation_status = "reactivated"
