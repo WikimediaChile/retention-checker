@@ -13,6 +13,11 @@ from dashboard_api import (
     get_dashboard_course_preview
 )
 
+from pathlib import Path
+
+from fastapi.staticfiles import StaticFiles
+
+
 app = FastAPI(title="Retention Checker API")
 
 app.add_middleware(
@@ -40,8 +45,8 @@ class ManualAnalysisRequest(BaseModel):
     very_active_edit_threshold: int = 20
 
 
-@app.get("/")
-def read_root():
+@app.get("/api/health")
+def health_check():
     return {
         "message": "Retention Checker API is running"
     }
@@ -69,3 +74,20 @@ def preview_dashboard_course(
             status_code=502,
             detail=str(exc)
         ) from exc
+
+
+frontend_dist = (
+    Path(__file__).resolve().parent.parent
+    / "frontend"
+    / "dist"
+)
+
+if frontend_dist.exists():
+    app.mount(
+        "/",
+        StaticFiles(
+            directory=frontend_dist,
+            html=True,
+        ),
+        name="frontend",
+    )

@@ -2,7 +2,7 @@
   "app": {
     "name": "Retention Checker",
     "eyebrow": "Análisis de actividad posterior en Wikimedia",
-    "description": "Analiza si las personas participantes continuaron editando después de una actividad. Esta primera versión permite ingresar manualmente nombres de usuario para una wiki."
+    "description": "Analiza si las personas participantes continuaron editando después de una actividad."
   },
   "tabs": {
     "ariaLabel": "Secciones de Retention Checker",
@@ -32,7 +32,8 @@
     "veryActiveThresholdLabel": "Umbral de actividad muy alta, en ediciones",
     "veryActiveThresholdHelp": "Cantidad mínima de ediciones posteriores a la actividad para considerar una cuenta como retenida muy activa.",
     "run": "Ejecutar análisis",
-    "running": "Ejecutando análisis..."
+    "running": "Ejecutando análisis...",
+    "processingNote": "Se admiten listas grandes, pero los análisis con muchas cuentas pueden tardar varios minutos. Mantén esta página abierta hasta que aparezcan los resultados."
   },
   "errors": {
     "usernamesRequired": "Ingresa al menos un nombre de usuario.",

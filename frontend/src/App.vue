@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'
+import { apiUrl } from './api'
 import { useI18n } from 'vue-i18n'
 
 import { Bar } from 'vue-chartjs'
@@ -143,7 +144,7 @@ async function loadDashboardPreview() {
 
   try {
     const response = await axios.post(
-      'http://127.0.0.1:8000/api/dashboard/preview',
+      apiUrl('/api/dashboard/preview'),
       {
         course_slug: dashboardCourseSlug.value
       }
@@ -202,7 +203,7 @@ async function runDashboardAnalysis() {
 
   try {
     const response = await axios.post(
-      'http://127.0.0.1:8000/api/analyze/manual',
+      apiUrl('/api/analyze/manual'),
       {
         usernames,
         wiki: dashboardWiki.value.trim(),
@@ -314,7 +315,8 @@ async function runAnalysis() {
   loading.value = true
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/analyze/manual', {
+    const response = await axios.post(
+      apiUrl('/api/analyze/manual'), {
       usernames,
       wiki: wiki.value.trim(),
       reference_date: referenceDate.value,
@@ -750,6 +752,10 @@ const retentionChartData = computed(() => {
           rows="8"
           :placeholder="t('analysis.usernamesPlaceholder')"
         ></textarea>
+
+        <small class="processing-note">
+            {{ t('analysis.processingNote') }}
+          </small>
       </label>
 
       <div class="grid">

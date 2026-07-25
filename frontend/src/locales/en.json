@@ -2,7 +2,7 @@
   "app": {
     "name": "Retention Checker",
     "eyebrow": "Wikimedia post-activity analysis",
-    "description": "Analyze whether participants continued editing after an activity. This first version supports manual username entry for one wiki."
+    "description": "Analyze whether participants continued editing after an activity."
   },
   "tabs": {
     "ariaLabel": "Retention Checker sections",
@@ -32,7 +32,8 @@
     "veryActiveThresholdLabel": "Very active threshold, edits",
     "veryActiveThresholdHelp": "Minimum post-activity edits needed to count as very active retained.",
     "run": "Run analysis",
-    "running": "Running analysis..."
+    "running": "Running analysis...",
+    "processingNote": "Large lists are supported, but analyses with many accounts may take several minutes. Keep this page open until the results appear."
   },
   "errors": {
     "usernamesRequired": "Please enter at least one username.",
