@@ -162,6 +162,7 @@
   "roleConflicts": "Role conflicts",
   "wikiLabel": "Wiki for retention analysis",
   "referenceDateLabel": "Reference date",
+  "largeCourseNote": "This course contains {count} participants. The analysis may take several minutes because contribution histories are processed for each account. Keep this page open while it runs.",
   "roleConflictHelp": "Accounts with both participant and staff roles are excluded from the default participant list.",
   "openCourse": "Open course in Dashboard",
   "runAnalysis": "Run retention analysis",

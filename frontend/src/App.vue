@@ -914,6 +914,17 @@ const retentionChartData = computed(() => {
           {{ t('dashboard.roleConflictHelp') }}
         </p>
 
+        <p
+            v-if="dashboardPreview.participant_count > 50"
+            class="dashboard-note"
+          >
+            {{
+              t('dashboard.largeCourseNote', {
+                count: dashboardPreview.participant_count
+              })
+            }}
+          </p>
+
         <div class="grid dashboard-settings">
           <label>
             {{ t('dashboard.wikiLabel') }}
@@ -1752,6 +1763,7 @@ th {
   color: #f87171;
   margin: 0 3px;
 }
+
 
 @media (max-width: 800px) {
   .grid,

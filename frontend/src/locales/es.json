@@ -163,6 +163,7 @@
   "participants": "Participantes",
   "staff": "Equipo o instructores",
   "roleConflicts": "Conflictos de rol",
+  "largeCourseNote": "Este curso contiene {count} participantes. El análisis puede tardar varios minutos porque el historial de contribuciones se procesa para cada cuenta. Mantén esta página abierta mientras se ejecuta.",
   "wikiLabel": "Wiki para el análisis de retención",
   "referenceDateLabel": "Fecha de referencia",
   "roleConflictHelp": "Las cuentas que tienen tanto un rol de participante como un rol de equipo se excluyen de la lista predeterminada de participantes.",
